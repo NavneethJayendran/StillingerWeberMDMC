@@ -39,7 +39,7 @@ Git tells you that newfile.txt has been added but has not been committed. We'll 
 `echo "This is a modified file." > newfile.txt`  <br />
 `git status`
 
-Git tells you that newfile.txt is already staged and ready to commit, but it also says newfile.txt has been modified and hasn't been staged for a commit. If you try to commit now, you will be committing the old version that read "This is a new file." instead of the new version which reads "This is a new file." This can be resolved by adding again.
+Git tells you that newfile.txt is already staged and ready to commit, but it also says newfile.txt has been modified and hasn't been staged for a commit. If you try to commit now, you will be committing the old version that read "This is a new file." instead of the new version which reads "This is a modified file." This difference can be resolved by adding again. Run:
 
 `git add newfile.txt`  <br />
 `git status`
@@ -69,7 +69,9 @@ These operations are a little bit intricate in the general case, so I'd advise r
 
 `git push origin`
 
-Now these changes should be updated online on the branch you've committed them to (read below for more info).
+This requires your Git username and password, and you need to be given permission to push commits. I should already have given you commit permission. If not, just let me know and provide me your Git username.
+
+If the push succeeds, these changes should be updated online on the branch you've committed them to (read below for more info).
 
 If you want to pull the latest changes from a given branch (read below for more info), use:
 
