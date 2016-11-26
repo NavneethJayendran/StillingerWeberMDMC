@@ -10,7 +10,7 @@ function usage {
 usage
 
 if [[ $EUID == 0 ]]; then
-  echo "ERROR: This script must NOT be run as root! This is so that pip3 does"
+  echo "ERROR: This script must NOT be run as root! This is so that pip3 does"\
        "not try to install into root directories."
   exit 1
 fi
