@@ -105,4 +105,23 @@ In order to check what branch you are currently working on, run:
 
 `git branch`
 
-At this point, it should show master, nav, nav-dev, and any other branches that were created since then and which you cloned. Feel free to make any changes you want on your own branch. No one will complain, since it leaves their branches unchanged.
+At this point, it should show master, nav, nav-dev, and any other branches that
+were created since then and which you cloned. Feel free to make any changes you
+want on your own branch. No one will complain, since it leaves their branches
+unchanged.
+
+### Installing your Python Environment
+
+The script env\_install.sh will automatically provide you a quick installation 
+of Python3, pip3, and every package that you'll probably ever need for this
+project. However, you must be using Linux and have the apt package manager
+installed for this script to fully work. To use it, run:
+
+`./env_install.sh`
+
+The script eventually creates a virtual environment stored in a hidden .env
+folder. In order to use this virtual environment, run:
+
+`source .env/bin/activate`
+
+And you will now have every Python module installed ready to go.
