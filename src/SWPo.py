@@ -55,9 +55,11 @@ def SWPotOne(nlist2,nlist2p,nlist3,nlist3p,X,Lb,atm1,Xi,Rij,Cij):
         #old distance
         rij = Rij[min(atm1,atmj),max(atm1,atmj)]
         #new distance
-        rij2 = np.linalg.norm(disij2)
-        Rij_new[min(atm1,atmj),max(atm1,atmj)] = rij2*isigmaSi
-        rij2 = Rij_new[min(atm1,atmj),max(atm1,atmj)]
+        rij2 = np.linalg.norm(disij2)*isigmaSi
+        Rij_new[min(atm1,atmj), max(atm1,atmj)] = rij2
+        #>>rij2 = np.linalg.norm(disij2)        #seems just a bit redundant
+        #>>Rij_new[min(atm1,atmj),max(atm1,atmj)] = rij2*isigmaSi
+        #>>rij2 = Rij_new[min(atm1,atmj),max(atm1,atmj)]
 
         #extract cij for old position out of input Cij
         cij = Cij[min(atm1,atmj),max(atm1,atmj)]
@@ -80,12 +82,9 @@ def SWPotOne(nlist2,nlist2p,nlist3,nlist3p,X,Lb,atm1,Xi,Rij,Cij):
 
     #triplet potetial contribution
     for i in range(nlist3p[atm1,0]):
-        i=i+1
+        i=i+1  #NAV: Is this intended? i gets reset by the for loop every time
         #extract the triplet array using the pointer list's index
-        trip = nlist3[nlist3p[atm1,i]]    
-        atmi = trip[0]
-        atmj = trip[1]
-        atmk = trip[2]
+        atmi, atmj, atmk = nlist3[nlist3p[atm1,i]]
                 
         #old displacements
         disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k

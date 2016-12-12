@@ -64,3 +64,34 @@ Unew,Rijnew,Cijnew = SWPotAll(nl2,np2,nl3,x_new,Lb)
 dPotOne,Rij2,Cij2 = SWPotOne(nl2,np2,nl3,np3,x,Lb,atm1,x0,R1,C1)
 
 assert(np.isclose(dPotOne,Unew-U))
+
+class DataFrame:
+  def __init__(self,  positions, U=None, S_k = None, g_r = None):
+
+    if U is not None:
+      self.U = U
+    if S_k is not None:
+      print("Implement calculation of structure factor.")
+    if g_r is not None:
+      print("Implement calculation of pair correlation function.")
+
+
+def MC_loop(nsweeps = 1000, npart=216, nc = 10, sigma=1, temp = 298):
+  atomic_positions = PureSi(cx,cy,cz, a)
+  neigh2, neigh2p = nlist2(cx*a, bscale, bscale, bscale, atomic_positions)
+  neigh3, _ = nlist3(neigh2, neigh2p)
+  U, dist_mat = SWPotAll(neigh2, neigh2p, nlist3, atomic_positions,a*nc)
+  beta = 1.0/(kB*temp)
+  disp_list = np.zeros((npart, 3))
+  for i in range(nsweeps):
+    for j in range(npart):
+      v = np.random.rand(3)
+      v /= np.linalg.norm(v)
+      v *= np.random.normal(sigma)
+      #best to do entire calculation in SWPotDelta
+      dU = SWPotDelta(iat, v, niegh2, neigh2p, neigh3, None, atomic_positions,
+                      dist_mat)
+      U += dU
+
+if __name__ == "__main__":
+  print("Not yet implemented.")

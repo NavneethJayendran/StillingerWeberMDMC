@@ -24,7 +24,7 @@ def set_exp_table(x_min, x_max, dx):
     value += exp_dx
 
 def exp(x):
-  assert(x >= exp_x_min and x < exp_x_max)
+  #assert(x >= exp_x_min and x < exp_x_max)
   idx = int((x-exp_x_min)*exp_dx_inv) #get bin index
   #if exp_calc[idx]:
   #    exp_calc[idx] = False #No longer need to recompute this
@@ -34,7 +34,7 @@ def exp(x):
   return exp_table[idx]
 
 def exp_interp(x):
-  assert(x >= exp_x_min and x < exp_x_max)
+  #assert(x >= exp_x_min and x < exp_x_max)
   idx = int((x-exp_x_min)*exp_dx_inv) #get bin index
   bin_dx = x-exp_dx*(idx+0.5)-exp_x_min  #get offset from bin center
   #bin_dx = x-exp_dx*idx-exp_x_min #get offset from bin left edge
@@ -48,20 +48,20 @@ def exp_interp(x):
 
 if __name__ == '__main__':
   import timeit
-  numbers = np.random.rand(1000000)
+  numbers = np.random.rand(10000)
   set_exp_table(0, 1, 0.01)
-  tabulars1 = np.zeros(1000000) #use simple table lookup
-  tabulars2 = np.zeros(1000000) #use first degree Taylor lookup
-  actuals  = np.zeros(1000000)  #use math.exp()
+  tabulars1 = np.zeros(10000) #use simple table lookup
+  tabulars2 = np.zeros(10000) #use first degree Taylor lookup
+  actuals  = np.zeros(10000)  #use math.exp()
   
-  for i in range(1000000):
+  for i in range(10000):
     tabulars1[i] = exp(numbers[i])
     tabulars2[i] = exp_interp(numbers[i]) 
     actuals[i] = math.exp(numbers[i])
     #print(tabulars1[i], tabulars2[i], actuals[i])
-  L1_tab = np.linalg.norm(tabulars1-actuals, ord=1)/1000000
+  L1_tab = np.linalg.norm(tabulars1-actuals, ord=1)/10000
   Linf_tab = np.max(np.abs(tabulars1-actuals))
-  L1_int = np.linalg.norm(tabulars2-actuals, ord=1)/1000000
+  L1_int = np.linalg.norm(tabulars2-actuals, ord=1)/10000
   Linf_int = np.max(np.abs(tabulars2-actuals))
   setup = "from __main__ import numbers, exp, exp_interp; import math"
   print("NUMERICAL ERROR TESTS")
