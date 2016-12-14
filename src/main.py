@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import time
 import nlist as n
 from random import random
+from numpy.random import normal
 from heap import *
 from initSi import PureSi
 from SWPo import *
@@ -82,12 +83,13 @@ class DataFrame:
       print("Implement calculation of pair correlation function.")
 
 
-def MC_loop(nsweeps = 1000,nc = 10, sigma=rs/4, temp = 298, nxyz = (3,3,3),
+
+def MC_loop(nsweeps = 1000,nc = 10, sigma=rs/8, temp = 298, nxyz = (3,3,3),
             bxyz = None):
   (nx,ny,nz) = nxyz
   Lb = lat*np.array([nx,ny,nz])    #init box dimensions
   if bxyz is None:
-    bxyz = ((0,Lb[0]), (0,Lb[1]), (0,Lb[2]))
+    bxyz = ((-Lb[0]/2,Lb[0]/2), (-Lb[1]/2,Lb[1]/2), (-Lb[2]/2,Lb[2]/2))
   bx,by,bz = bxyz
   npart = nx*ny*nz*8
   atom_pos = PureSi(nx,ny,nz, lat) #init atomic positions
@@ -112,10 +114,10 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=rs/4, temp = 298, nxyz = (3,3,3),
       #end stores
 
       dv = np.random.rand(3)-0.5   #uniform random vector
-      dv /= np.linalg.norm(dv)     #uniform random unit vector
-      dv *= max(rs,np.random.normal(sigma)) #scale by (trunc'd) Gaussian
+      dv /= norm2_3d(dv)           #uniform random unit vector
+      dv *= max(rs,abs(normal(scale=sigma))) #scale by (trunc'd) Gaussian
       disp_list[j] += dv    #add dv to displacement j
-      dist_list[j] = np.linalg.norm(disp_list[j]) #consider distance
+      dist_list[j] = norm2_3d(disp_list[j]) #consider distance
       if dist_list[j] > distj_old:
         increased_dist = True
         max_heap.increased(j)
@@ -160,7 +162,7 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=rs/4, temp = 298, nxyz = (3,3,3),
       #rejected move!
       elif recomputed:
         disp_list[j] = -dv
-        dist_list[j] = np.linalg.norm(dv)
+        dist_list[j] = norm2_3d(dv)
         max_heap.increased(j)
       else:
         disp_list[j] = dispj_old

@@ -2,9 +2,6 @@ import numpy as np
 import time
 #function for creating 2 body neighborlists
 
-distance_matrix
-distance_matrix_updates
-distance_sigma
 
 def distance_init(nparts, dist_mat, sigma):
   distance_sigma_inv = 1.0/sigma
