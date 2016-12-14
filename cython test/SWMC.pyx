@@ -7,7 +7,55 @@ cimport cython
 #One file containing all of the necessary functions for our MC loop, to be used with Cython for speed
 
 DTYPE = np.int
-#DTYPEf = np.float32
+#DTYPEf = np.float64
+
+#converts a raw C array to a numpy array
+
+cdef pointer_to_numpy_array_float64(void * ptr, np.npy_intp size):
+  cdef extern from "numpy/arrayobject.h":
+    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
+  cdef np.ndarray[np.float64, ndim=1] arr = \
+      np.PyArray_SimpleNewFromData(1, &size, np.NPY_FLOAT64, ptr)
+  PyArray_ENABLEFLAGS(arr, np.NPY_OWNDATA)
+  return arr
+
+cdef extern from "cutils.h":
+  double distance(double *v1, double *v2)
+  double *disp_in_box(double *v1, double *v2, double *box)
+  void normalize2_3d(double *vec)
+  double norm2_3d(double *vec)
+  double dot3d(double *vec1, double *vec2)
+  double vec_cos3d(double *vec1, double *vec2)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def c_distance(np.ndarray[double, ndim=1, mode="c"] v1 not None,
+             np.ndarray[double, ndim=1, mode="c"] v2 not None):
+  return distance(&v1[0], &v2[0])
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def c_disp_in_box(np.ndarray[double, ndim=1, mode="c"] vec is not None):
+  cdef double *data = disp_in_box(&vec[0])
+  return pointer_to_numpy_array_float64(data,3)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def c_norm2_3d(np.ndarray[double, ndim=1, mode="c"] vec is not None):
+  return norm2_3d(&vec[0])
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def c_normalize2_3d(np.ndarray[double, ndim=1, mode="c"] vec is not None):
+  normalize2_3d(&vec[0]);
+  return None
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def c_dot3d(np.ndarray[double, ndim=1, mode="c"] v1 is not none,
+            np.ndarray[double, ndim=1, mode="c"] v2 is not none):
+  return dot3d(&v1[0], &v2[0])
+
 
 ctypedef np.int_t DTYPE_t
 #ctypedef np.float32 DTYPEf_t
@@ -140,7 +188,7 @@ def SWPotOne(
         amax = max(atm1,atmj)
         rij = Rij[amin,amax]
         #new distance
-        rij2 = np.linalg.norm(disij2)*isigmaSi
+        rij2 = c_norm2_3d(disij2)*isigmaSi
         Rij_new[amin, amax] = rij2
         #>>rij2 = np.linalg.norm(disij2)        #seems just a bit redundant
         #>>Rij_new[min(atm1,atmj),max(atm1,atmj)] = rij2*isigmaSi
