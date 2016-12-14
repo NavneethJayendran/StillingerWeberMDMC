@@ -3,6 +3,7 @@ import time
 import math
 cimport numpy as np
 cimport cython
+from libc.math import exp, sqrt
 
 #One file containing all of the necessary functions for our MC loop, to be used with Cython for speed
 
@@ -204,8 +205,8 @@ def SWPotOne(
             cij2 = 1/(rij2-al)
         Cij_new[amin,amax] = cij2
 
-        Utemp = A*(B*rij**(-psi)-1)*math.exp(cij)
-        Utemp2 = A*(B*rij2**(-psi)-1)*math.exp(cij2)
+        Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)
+        Utemp2 = A*(B*1.0/((rij2*rij2*rij2*rij2)-1)*exp(cij2)
         U2_old += Utemp
         U2_new += Utemp2
 #        if(flag > 10):
@@ -281,11 +282,11 @@ def SWPotOne(
             print(amin,amax)
 
         #old cos of angle
-        dot = np.dot(disij,disik)
+        dot = c_dot(disij,disik)
         cosjik = dot/(rij*rik)
 
         #new cos of angle
-        dot2 = np.dot(disij2,disik2)
+        dot2 = c_dot(disij2,disik2)
         cosjik2 = dot2/(rij2*rik2)
 
         #normalize distances
@@ -301,8 +302,8 @@ def SWPotOne(
         cik2 = Cij_new[amin2,amax2]
     
 #        print(cij,cik)
-        hjik = math.exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
-        hjik2 = math.exp(gamma*(cij2+cik2))*(cosjik2+1./3.)*(cosjik2+1./3.)
+        hjik = exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
+        hjik2 = exp(gamma*(cij2+cik2))*(cosjik2+1./3.)*(cosjik2+1./3.)
         U3_old += hjik
         U3_new += hjik2
 #    if(flag > 10):
@@ -363,7 +364,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb,Rij,Cij):
 #            Cij[atmi,atmj] = cij
             
 
-            Utemp = A*(B*rij**(-psi)-1)*math.exp(cij)
+            Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)
 #            print('Utemp 2 body:\t' + str(Utemp))
             U2 += Utemp
 #        print(U2)
@@ -404,7 +405,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb,Rij,Cij):
         if rij == 0:
             print('Atom i and Atom j: \t' + str(atmi,atmj))
 
-        dot = np.dot(disij,disik)
+        dot = c_dot(disij,disik)
         cosjik = dot/(rij*rik)
 
         rij = rij*isigmaSi
@@ -413,7 +414,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb,Rij,Cij):
         cij = Cij[min(atmi,atmj),max(atmi,atmj)]
         cik = Cij[min(atmi,atmk),max(atmi,atmk)]
 
-        hjik = lambdaSi*math.exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
+        hjik = lambdaSi*exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
         U3 += hjik
 #    print('U3: \t'+str(U3))
     #end for 3 body loops
@@ -456,7 +457,7 @@ def nlist2(
     ny = int(np.floor((by[1]-by[0])/(rc+rs)))
     nz = int(np.floor((bz[1]-bz[0])/(rc+rs)))
 
-    rc2 = (rc+rs)**2  #compare distances squared to avoid a sqrt calculation on each distance
+    rc2 = (rc+rs)*(rc+rs)  #compare distances squared to avoid a sqrt calculation on each distance
 
     #sub-bins, 2 per rc division
     d = 2
@@ -595,7 +596,7 @@ def nlist2(
                         if (kflagp == True): x2[2] =x2[2]+blz
 
                         #squared distance for squared rc
-                        dx = np.dot(x1-x2,x1-x2)
+                        dx = c_dot(x1-x2,x1-x2)
                         if(dx<rc2):
                             #place second atom's index on the full neighbor list #includes duplicate pairs
                             ncntp[atm1] = ncntp[atm1]+1
@@ -604,7 +605,7 @@ def nlist2(
 
                         #now calculate and store quantities that need to be initialized for potential
 #                            if(atm1<atm2):
-                            rij = dx**0.5
+                            rij = sqrt(dx)
                             Rij[atm1,atm2] = rij*isigmaSi
 #                            print('scaled rij \t' + str(rij*isigmaSi))
                             #checking for distances outside of cutoff radius: outside will result in a potential of ~0
