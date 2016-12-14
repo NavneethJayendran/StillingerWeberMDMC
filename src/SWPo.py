@@ -28,13 +28,17 @@ al         = 1.8
 lambdaSi   = 21.0
 gamma      = 1.2
 
+def norm2_3d(x): #almost 3x as fast as norm2_3d
+  return math.sqrt(x[0]**2+x[1]**2+x[2]**2) 
+
 #function for determing potential energy change from moving atm1 to new position Xi
-def SWPotOne(nlist2,nlist2p,nlist3,nlist3p,X,Lb,atm1,Xi,Rij,Cij):
+def SWPotOne(nlist2,nlist2p,nlist3,nlist3p,X,Lb,atm1,Xi,Rij,Cij): 
     t0 = time.clock()
     Rij_new = np.copy(Rij)
     Cij_new = np.copy(Cij)
     X_new = np.copy(X)
     X_new[atm1,:] = Xi
+    SWPotOne.iteration = 0
 
     U2_old = 0
     U2_new = 0
@@ -55,9 +59,9 @@ def SWPotOne(nlist2,nlist2p,nlist3,nlist3p,X,Lb,atm1,Xi,Rij,Cij):
         #old distance
         rij = Rij[min(atm1,atmj),max(atm1,atmj)]
         #new distance
-        rij2 = np.linalg.norm(disij2)*isigmaSi
+        rij2 = norm2_3d(disij2)*isigmaSi
         Rij_new[min(atm1,atmj), max(atm1,atmj)] = rij2
-        #>>rij2 = np.linalg.norm(disij2)        #seems just a bit redundant
+        #>>rij2 = norm2_3d(disij2)        #seems just a bit redundant
         #>>Rij_new[min(atm1,atmj),max(atm1,atmj)] = rij2*isigmaSi
         #>>rij2 = Rij_new[min(atm1,atmj),max(atm1,atmj)]
 
@@ -160,6 +164,8 @@ def SWPotOne(nlist2,nlist2p,nlist3,nlist3p,X,Lb,atm1,Xi,Rij,Cij):
     dPot = U_new-U_old
     return dPot,Rij_new,Cij_new
 
+SWPotOne.iteration = 0
+
 def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
     t0 = time.clock()
     Natm = np.shape(X)[0]
@@ -189,7 +195,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
                     disij[l] = disij[l] + Lb[l]
                 # end if
 
-            rij = np.linalg.norm(disij)*isigmaSi
+            rij = norm2_3d(disij)*isigmaSi
 
             Rij[atmi,atmj] = rij
 

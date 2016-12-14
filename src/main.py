@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import nlist as n
+from random import random
+from numpy.random import normal
+from heap import *
 from initSi import PureSi
 from SWPo import *
 
@@ -16,6 +19,7 @@ sigmasi = 2.0951 #a stillinger weber parameter
 
 atom_pos = PureSi(3,3,3,lat)
 
+x = PureSi(3,3,3, lat) #init atomic positions
 #print(x)
 nx = np.array([-1.5,1.5])
 ny = np.array([-1.5,1.5])
@@ -79,70 +83,96 @@ class DataFrame:
       print("Implement calculation of pair correlation function.")
 
 
-def MC_loop(nsweeps = 1000,nc = 10, sigma=1, temp = 298, nxyz = (3,3,3),
+
+def MC_loop(nsweeps = 1000,nc = 10, sigma=rs/8, temp = 298, nxyz = (3,3,3),
             bxyz = None):
   (nx,ny,nz) = nxyz
   Lb = lat*np.array([nx,ny,nz])    #init box dimensions
   if bxyz is None:
-    bxyz = ((0,Lb[0]), (0,Lb[1]), (0,Lb[2]))
+    bxyz = ((-Lb[0]/2,Lb[0]/2), (-Lb[1]/2,Lb[1]/2), (-Lb[2]/2,Lb[2]/2))
   bx,by,bz = bxyz
   npart = nx*ny*nz*8
   atom_pos = PureSi(nx,ny,nz, lat) #init atomic positions
-  neigh2, neigh2p = nlist2(bx, by, bz, rc, atom_pos)
-  neigh3, neigh3p = nlist3(neigh2, neigh2p)
-  U, Rij, Cij = SWPotAll(neigh2, neigh2p, nlist3, atom_pos,a*nc)
+  neigh2, neigh2p = n.nlist2(bx, by, bz, rc, atom_pos)
+  neigh3, neigh3p = n.nlist3(neigh2, neigh2p)
+  U, Rij, Cij = SWPotAll(neigh2, neigh2p, neigh3, atom_pos, Lb)
   beta = 1.0/(kB*temp)
   disp_list = np.zeros((npart, 3))
-  disp_max1 = np.zeros(3); sqdist_max1 = 0; #2 max displacements since nlist
-  disp_max2 = np.zeros(3); sqdist_max2 = 0; #computation & their norms squared
+  dist_list = np.zeros(npart)
+  max_heap = Heap(np.arange(npart), dist_list)
+  #disp_max1 = np.zeros(3); dist_max1 = 0; #2 max displacements since nlist
+  #disp_max2 = np.zeros(3); dist_max2 = 0; #computation & their norms squared
+  
   for i in range(nsweeps):
     for j in range(npart):
       #don't overwrite old states in case of rejection
       recomputed = False #did we remake the neighborlists?
-      disp_max1_new = disp_max1; dist_max1_old = sqdist_max1;
-      disp_max2_new = disp_max2; dist_max2_old = sqdist_max2;
-      dispj_new = disp_list[j]
+      #disp_max1_new = disp_max1; dist_max1_old = sqdist_max1;
+      #disp_max2_new = disp_max2; dist_max2_old = sqdist_max2;
+      distj_old = dist_list[j]
+      dispj_old = disp_list[j]
       #end stores
 
-      dv = np.random.rand(3)   #uniform random vector
-      dv /= np.linalg.norm(v)  #uniform random unit vector
-      dv *= max(rs/2,np.random.normal(sigma)) #scale by (trunc'd) Gaussian
-      dispj_new += dv       #add dv to displacement j
-      curr_dist = np.linalg.norm(dispj_new) #consider distance
-
-      if curr_dist > dist_max1_new: #if longer than current max, replace
-        dist_max1_new = curr_dist
-        disp_max1_new = dispj_new
-      elif curr_dist > dist_max2_new: #else try replacing second largest max
-        dist_max2_new = curr_dist
-        disp_max2_new = dispj_new
+      dv = np.random.rand(3)-0.5   #uniform random vector
+      dv /= norm2_3d(dv)           #uniform random unit vector
+      dv *= max(rs,abs(normal(scale=sigma))) #scale by (trunc'd) Gaussian
+      disp_list[j] += dv    #add dv to displacement j
+      dist_list[j] = norm2_3d(disp_list[j]) #consider distance
+      if dist_list[j] > distj_old:
+        increased_dist = True
+        max_heap.increased(j)
+      else:
+        increased_dist = False
+        max_heap.decreased(j)
+      dist_max1_idx, dist_max2_idx = max_heap.top2()
+      dist_max1_new = dist_list[dist_max1_idx]
+      dist_max2_new = dist_list[dist_max2_idx]
+      #if curr_dist > dist_max1_new: #if longer than current max, replace
+      #  dist_max1_new = curr_dist
+      #  disp_max1_new = dispj_new
+      #elif curr_dist > dist_max2_new: #else try replacing second largest max
+      #  dist_max2_new = curr_dist
+      #  disp_max2_new = dispj_new
 
       if dist_max1_new + dist_max2_new > rs: #time to recompute neighborlists
         recomputed = True
         atom_pos[j] += dv #temporarily do this to compute the new nlists
-        disp_list = np.zeros((npart,3))  #displacements are now all 0
-        disp_max1 = np.zeros(3); dist_max1_new = 0;
-        disp_max2 = np.zeros(3); dist_max2_new = 0; 
-        neigh2, neigh2p = nlist2(bx, by, bz, rc, atom_pos) #recompute n2
-        neigh3, neigh3p = nlist3(neigh2, neigh2p)          #recompute n3
+        disp_list[:]=0  #displacements are now all 0
+        dist_list[:]=0  #distances are now all 0
+        #disp_max1 = np.zeros(3); dist_max1_new = 0;
+        #disp_max2 = np.zeros(3); dist_max2_new = 0; 
+        neigh2, neigh2p = n.nlist2(bx, by, bz, rc, atom_pos) #recompute n2
+        neigh3, neigh3p = n.nlist3(neigh2, neigh2p)          #recompute n3
         atom_pos[j] -= dv #undo that last temporary change
             
       #calculate energy differential   
       dU, Rij_new, Cij_new = SWPotOne(neigh2, neigh2p, neigh3, neigh3p, 
                                       atom_pos, Lb, j, atom_pos[j]+dv,
                                       Rij, Cij)
-      if math.exp(-dU*beta) >= random.random(): #accepted move!
+      print("dU =",dU)
+      if math.exp(-dU*beta) >= random(): #accepted move!
         U += dU           #update energy
         atom_pos[j] += dv #add dv to this atomic position
         Rij = Rij_new; Cij = Cij_new;  #update matrices
-        if not recomputed: #if recomputed, we already zeroed out everything
+        #if not recomputed: #if recomputed, we already zeroed out everything
           #but if not, update everything
-          disp_list[j = disj_new 
-          disp_max1 = disp_max1_new; dist_max1 = dist_max1_new;
-          disp_max2 = disp_max2_new; dist_max2 = dist_max2_new;
+          #disp_list[j = disj_new 
+          #disp_max1 = disp_max1_new; dist_max1 = dist_max1_new;
+          #disp_max2 = disp_max2_new; dist_max2 = dist_max2_new;
       #rejected move!
-      elif recomputed: #we "moved back" dv after computing lists, so note this
-          disp_max1 = -dv; dist_max1 = np.linalg.norm(dv);
+      elif recomputed:
+        disp_list[j] = -dv
+        dist_list[j] = norm2_3d(dv)
+        max_heap.increased(j)
+      else:
+        disp_list[j] = dispj_old
+        dist_list[j] = distj_old
+        if not increased_dist:
+          max_heap.increased(j)
+        else:
+          max_heap.decreased(j)
 
 if __name__ == "__main__":
   print("Not yet implemented.")
+  MC_loop(nsweeps = 1000,nc = 10, sigma=1, temp = 298, nxyz = (3,3,3),
+            bxyz = None)
