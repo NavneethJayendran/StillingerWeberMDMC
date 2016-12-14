@@ -3,61 +3,11 @@ import time
 import math
 cimport numpy as np
 cimport cython
-from libc.math cimport exp
-
 
 #One file containing all of the necessary functions for our MC loop, to be used with Cython for speed
 
-
 DTYPE = np.int
-#DTYPEf = np.float64
-
-#converts a raw C array to a numpy array
-
-cdef pointer_to_numpy_array_float64(void * ptr, np.npy_intp size):
-  cdef extern from "numpy/arrayobject.h":
-    void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
-  cdef np.ndarray[np.float64, ndim=1] arr = \
-      np.PyArray_SimpleNewFromData(1, &size, np.NPY_FLOAT64, ptr)
-  PyArray_ENABLEFLAGS(arr, np.NPY_OWNDATA)
-  return arr
-
-cdef extern from "cutils.h":
-  double distance(double *v1, double *v2)
-  double *disp_in_box(double *v1, double *v2, double *box)
-  void normalize2_3d(double *vec)
-  double norm2_3d(double *vec)
-  double dot3d(double *vec1, double *vec2)
-  double vec_cos3d(double *vec1, double *vec2)
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def c_distance(np.ndarray[double, ndim=1, mode="c"] v1 not None,
-             np.ndarray[double, ndim=1, mode="c"] v2 not None):
-  return distance(&v1[0], &v2[0])
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def c_disp_in_box(np.ndarray[double, ndim=1, mode="c"] vec is not None):
-  cdef double *data = disp_in_box(&vec[0])
-  return pointer_to_numpy_array_float64(data)
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def c_norm2_3d(np.ndarray[double, ndim=1, mode="c"] vec is not None):
-  return norm2_3d(&vec[0])
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def c_normalize2_3d(np.ndarray[double, ndim=1, mode="c"] vec is not None):
-  normalize2_3d(&vec[0]);
-  return None
-
-def c_dot3d(np.ndarray[double, ndim=1, mode="c"] v1 is not none,
-            np.ndarray[double, ndim=1, mode="c"] v2 is not none):
-  return dot3d(&v1[0], &v2[0])
-
-
+#DTYPEf = np.float32
 
 ctypedef np.int_t DTYPE_t
 #ctypedef np.float32 DTYPEf_t
@@ -190,8 +140,7 @@ def SWPotOne(
         amax = max(atm1,atmj)
         rij = Rij[amin,amax]
         #new distance
-        #rij2 = np.linalg.norm(disij2)*isigmaSi #try C version
-        rij2  = c_distance(disij2)*isigmaSi
+        rij2 = np.linalg.norm(disij2)*isigmaSi
         Rij_new[amin, amax] = rij2
         #>>rij2 = np.linalg.norm(disij2)        #seems just a bit redundant
         #>>Rij_new[min(atm1,atmj),max(atm1,atmj)] = rij2*isigmaSi
@@ -207,8 +156,8 @@ def SWPotOne(
             cij2 = 1/(rij2-al)
         Cij_new[amin,amax] = cij2
 
-        Utemp = A*(B*rij**(-psi)-1)*exp(cij)
-        Utemp2 = A*(B*rij2**(-psi)-1)*exp(cij2)
+        Utemp = A*(B*rij**(-psi)-1)*math.exp(cij)
+        Utemp2 = A*(B*rij2**(-psi)-1)*math.exp(cij2)
         U2_old += Utemp
         U2_new += Utemp2
 #        if(flag > 10):
@@ -352,12 +301,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb,Rij,Cij):
 #                    disij[l] = disij[l] + Lb[l]
                 # end if
 
-#<<<<<<< HEAD
 #            rij = np.linalg.norm(disij)*isigmaSi
-#=======
-            #rij = np.linalg.norm(disij)*isigmaSi  #try c_distance
-            rij = c_norm2_3d(disij)*isigmaSi
-#>>>>>>> cd05cde5b1c952e1a8dff746aa2cf598281c49b1
 
 #            Rij[atmi,atmj] = rij
 
