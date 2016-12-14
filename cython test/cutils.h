@@ -1,8 +1,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-double *disp_in_box(double *restrict v1, double *restrict v2, 
-                    double *restrict box){
+double *disp_in_box(double * v1, double * v2, 
+                    double * box){
   double *out = malloc(24);
   double b0h = box[0]/2, b1h = box[1]/2, b2h = box[2]/2;
   out[0] = v2[0]-v1[0];
@@ -23,7 +23,7 @@ double *disp_in_box(double *restrict v1, double *restrict v2,
   return out;
 }
 
-double distance(double *restrict v1, double *restrict v2){
+double distance(double * v1, double * v2){
   double d0, d1, d2;
   d0 = v2[0]-v1[0];
   d1 = v2[1]-v1[1];
@@ -47,11 +47,11 @@ double inv_norm2_3d(double *vec){
   return 1.0/sqrt(vec[0]*vec[0]+vec[1]*vec[1]+vec[2]*vec[2]);
 }
 
-double dot3d(double *restrict vec1, double *restrict vec2){
+double dot3d(double * vec1, double * vec2){
   return vec1[0]*vec2[0]+vec1[1]*vec2[1]+vec1[2]*vec2[2];
 }
 
-double vec_cos3d(double *restrict vec1, double *restrict vec2){
+double vec_cos3d(double * vec1, double * vec2){
   double sumsq1 = vec1[0]*vec1[0]+vec1[1]*vec1[1]+vec1[2]*vec1[2];
   double sumsq2 = vec2[0]*vec2[0]+vec2[1]*vec2[1]+vec2[2]*vec2[2];
   return 
