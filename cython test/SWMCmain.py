@@ -49,9 +49,9 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nxyz = (3,3,
   if atom_pos is None:
       atom_pos = SWMC.PureSi(nx,ny,nz,lat) #init atomic positions
 
-  nl2, np2, Rij, Cij = SWMC.nlist2(bx, by, bz, rc, rs, atom_pos)
+  nl2, np2 = SWMC.nlist2(bx, by, bz, rc, rs, atom_pos)
   nl3, np3 = SWMC.nlist3(nl2, np2)
-  U, Rij, Cij = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb,Rij,Cij)
+  U = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
 
   disp_list = np.zeros((npart, 3))
   dist_max1 = 0; #2 max displacements since nlist
@@ -70,7 +70,7 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nxyz = (3,3,
 #      print('dispj_new'+str(dispj_new))
       #end stores
 
-      dv = np.random.rand(3)   #uniform random vector
+      dv = np.random.rand(3)-0.5   #uniform random vector
       dv /= np.linalg.norm(dv)  #uniform random unit vector
       dv *= min(rs/2,abs(np.random.normal(sigma,var))) #scale by (trunc'd) Gaussian
 #      print('dv' + str(dv))
@@ -82,9 +82,7 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nxyz = (3,3,
         #if move would cause a particle to move past threshold value, flag for new neighborlist after successfull
         recomputed = True
 
-      dU, Rij_new, Cij_new = SWMC.SWPotOne(nl2, np2, nl3, np3, 
-                                      atom_pos, Lb, j, atom_pos[j]+dv,
-                                      Rij, Cij,i)
+      dU = SWMC.SWPotOne(nl2, np2, nl3, np3, atom_pos, Lb, j, atom_pos[j]+dv,i)
 
       if math.exp(-dU*beta) >= np.random.rand(): #accepted move!
         i_acc += 1
@@ -92,7 +90,7 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nxyz = (3,3,
         if recomputed == True:
           print('New Neighborlist!')
           print('delta U %4.4f'%dU)
-          nl2, np2, Rij_new, Cij_new = SWMC.nlist2(bx, by, bz, rc, rs, atom_pos) #recompute n2
+          nl2, np2 = SWMC.nlist2(bx, by, bz, rc, rs, atom_pos) #recompute n2
           dist_max1 = 0
           dist_max2 = 0
           disp_max1 = np.zeros(3)
@@ -103,7 +101,6 @@ def MC_loop(nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nxyz = (3,3,
             dist_max1,dist_max2 = heapq.nlargest(2,(dist_max1,dist_max2,curr_dist))
 #            print(sum((dist_max1,dist_max2)))
         U += dU           #update energy
-        Rij = Rij_new; Cij = Cij_new;  #update matrices
         atom_pos[j] += dv #add dv to this atomic position
         atom_pos[j] = rebox(atom_pos[j],Lb)
 #        atom_pos[0:j] -= dv/(npart-1)
@@ -121,11 +118,11 @@ if __name__ == "__main__":
     nx,ny,nz = (3,3,3)
     kB = 8.6173303e-5 #Boltzmann in eV/K
     rc = 2.0951*1.8
-    rs = 1
+    rs = 0.6
 
-    MC_loop()
+    MC_loop(var=0.1)
 
-    testrun = False
+#    testrun = True
     if testrun == True:
         lat = 5.431
         sigmasi = 2.0951 #a stillinger weber parameter 
@@ -147,14 +144,14 @@ if __name__ == "__main__":
         rs = 0.6    #shell thickness past potential rc for neighborlist generation
 
         t0 = time.clock()
-        nl2,np2,Rij,Cij = SWMC.nlist2(bx,by,bz,rc,rs,x)
+        nl2,np2= SWMC.nlist2(bx,by,bz,rc,rs,x)
         t1 = time.clock()
         nl3,np3 = SWMC.nlist3(nl2,np2)
 
         #####
         #Checking potential functions
         t2 = time.clock()
-        U,R1,C1 = SWMC.SWPotAll(nl2,np2,nl3,x,Lb, Rij, Cij)
+        U = SWMC.SWPotAll(nl2,np2,nl3,x,Lb)
         t3 = time.clock()
         #particle ID to displace (arbitrarily chosen
         atm1 = 187
@@ -171,15 +168,15 @@ if __name__ == "__main__":
         x_new = np.copy(x)
         x_new[atm1] = x0
         print(x_new[atm1])
-        dPotOne,Rij,Cij = SWMC.SWPotOne(nl2,np2,nl3,np3,x,Lb,atm1,x0,Rij,Cij)
+        dPotOne = SWMC.SWPotOne(nl2,np2,nl3,np3,x,Lb,atm1,x0,1)
         t4 = time.clock()
 
-        nl22,np22,Rij2,Cij2 = SWMC.nlist2(bx,by,bz,rc,rs,x_new)
+        nl22,np22 = SWMC.nlist2(bx,by,bz,rc,rs,x_new)
         nl32,np32 = SWMC.nlist3(nl22,np22)
 
         x_new = np.copy(x)
         x_new[atm1,:] = x0
-        Unew,Rijnew,Cijnew = SWMC.SWPotAll(nl22,np22,nl32,x_new,Lb,Rij2,Cij2)
+        Unew = SWMC.SWPotAll(nl22,np22,nl32,x_new,Lb)
 
         print('Time elapsed for 2body lists: ' +str(t1-t0))
         print('Time elapsed for 3body lists: ' +str(t2-t1))
