@@ -20,7 +20,8 @@ cdef double ec         = 1.60217646e-19 # elementary charge (C)
 cdef double ao         = 0.053e-09 # Bohr radius
 cdef double massSi     = 46.637063e-27
 
-cdef double epsil      = 0.043
+cdef double epsil      = 0.043*50
+#cdef double epsil      = 1
 # Stillinger-Weber Constants
 cdef double sigmaSi    = 2.0951
 cdef double isigmaSi   = 1/sigmaSi
@@ -88,6 +89,7 @@ def PureSi(nx,ny,nz,a):
 
       return X
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def SWPotOne(
@@ -100,7 +102,8 @@ def SWPotOne(
     int atm1,
     np.ndarray[double] Xi,
     np.ndarray[double,ndim=2] Rij,
-    np.ndarray[double,ndim=2] Cij):
+    np.ndarray[double,ndim=2] Cij,
+    int flag):
 
     #declaring data types for Cython
 
@@ -157,6 +160,15 @@ def SWPotOne(
         Utemp2 = A*(B*rij2**(-psi)-1)*math.exp(cij2)
         U2_old += Utemp
         U2_new += Utemp2
+#        if(flag > 10):
+#            print('atom1: %1.3i atomj: %1.3i old U2 %1.5f: \t'%(atm1,atmj,Utemp))
+        
+#            print('new U2: \t' + str(U2_new))
+#            if U2_old > 100:
+#                print('atom1: %1.3i atomj: %1.3i old Rij %1.5f: \t'%(atm1,atmj,rij))
+
+#                exit()
+
     # end 2 body loop
 
     t1 = time.clock()
@@ -213,6 +225,13 @@ def SWPotOne(
         rij2 = Rij_new[amin,amax]*sigmaSi 
         rik2 = Rij_new[amin2,amax2]*sigmaSi 
 
+        if rik == 0:
+            print('Atom i and Atom k: \t' + str(atmi)+' '+str(atmk))
+            print(amin2,amax2)
+        if rij == 0:
+            print('Atom i and Atom j: \t' + str(atmi)+' '+str(atmj))
+            print(amin,amax)
+
         #old cos of angle
         dot = np.dot(disij,disik)
         cosjik = dot/(rij*rik)
@@ -227,36 +246,40 @@ def SWPotOne(
         rij2 = rij2*isigmaSi
         rik2 = rik2*isigmaSi
 
-        #extract cij for old position out of input Cij
+        #extract cij from 2 body calculations
         cij = Cij[amin,amax]
         cik = Cij[amin2,amax2]
         cij2 = Cij_new[amin,amax]
         cik2 = Cij_new[amin2,amax2]
-
-        hjik = lambdaSi*math.exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
-        hjik2 = lambdaSi*math.exp(gamma*(cij2+cik2))*(cosjik2+1./3.)*(cosjik2+1./3.)
+    
+#        print(cij,cik)
+        hjik = math.exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
+        hjik2 = math.exp(gamma*(cij2+cik2))*(cosjik2+1./3.)*(cosjik2+1./3.)
         U3_old += hjik
         U3_new += hjik2
+#    if(flag > 10):
+#        print('old U3: \t' + str(U3_old))
+#        print('new U3: \t' + str(U3_new))
 
     t2 = time.clock()
 #    print("Time required for system 3 body potential:\t" + str(t2-t1))
 
-    U_old = U2_old+U3_old
-    U_new = U2_new+U3_new
-    dPot = U_new-U_old
+    U_old = U2_old+U3_old*lambdaSi
+    U_new = U2_new+U3_new*lambdaSi
+    dPot = (U_new-U_old)*epsil
     return dPot,Rij_new,Cij_new
 
 #Not bothering to optimize, since it's only called once
-def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
+def SWPotAll(nlist2,nlist2p,nlist3,X,Lb,Rij,Cij):
     t0 = time.clock()
     Natm = np.shape(X)[0]
     U2 = 0 #initial system 2 body potential energy scalar
     U3 = 0 #initial system 3 body potential energy scalar
     #stored distances
-    Rij = np.zeros((Natm,Natm))
+#    Rij = np.zeros((Natm,Natm))
 
     #stored components of exponential terms
-    Cij = np.zeros((Natm,Natm))
+#    Cij = np.zeros((Natm,Natm))
 
     #2 body potential
     for i in range(Natm):
@@ -266,31 +289,36 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
             #only calculate each pair's energy once
             if atmi > atmj: continue
 
-            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
+            rij = Rij[atmi,atmj]
+            cij = Cij[atmi,atmj]
+#            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
 
             # loop through x,y,z distance components and find nearest images
-            for l in range(3): 
-                if disij[l] > Lb[l]/2:
-                    disij[l] = disij[l] - Lb[l]
-                elif -disij[l] > Lb[l]/2:
-                    disij[l] = disij[l] + Lb[l]
+#            for l in range(3): 
+#                if disij[l] > Lb[l]/2:
+#                    disij[l] = disij[l] - Lb[l]
+#                elif -disij[l] > Lb[l]/2:
+#                    disij[l] = disij[l] + Lb[l]
                 # end if
 
-            rij = np.linalg.norm(disij)*isigmaSi
+#            rij = np.linalg.norm(disij)*isigmaSi
 
-            Rij[atmi,atmj] = rij
+#            Rij[atmi,atmj] = rij
 
             #checking for distances outside of cutoff radius: outside will result in a potential of ~0            
-            if rij > al:
-                cij = -1e20
-            else: 
-                cij = 1/(rij-al)
+#            if rij > al:
+#                cij = -1e20
+#            else: 
+#                cij = 1/(rij-al)
 
             #store normalized interaction distances for future use
-            Cij[atmi,atmj] = cij
+#            Cij[atmi,atmj] = cij
+            
 
             Utemp = A*(B*rij**(-psi)-1)*math.exp(cij)
+#            print('Utemp 2 body:\t' + str(Utemp))
             U2 += Utemp
+#        print(U2)
         # end for
     # end for 2 body loop
     t1 = time.clock()
@@ -323,6 +351,11 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
         rij = Rij[min(atmi,atmj),max(atmi,atmj)]*sigmaSi
         rik = Rij[min(atmi,atmk),max(atmi,atmk)]*sigmaSi
 
+        if rik == 0:
+            print('Atom i and Atom k: \t' + str(atmi,atmk))
+        if rij == 0:
+            print('Atom i and Atom j: \t' + str(atmi,atmj))
+
         dot = np.dot(disij,disik)
         cosjik = dot/(rij*rik)
 
@@ -334,12 +367,13 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
         hjik = lambdaSi*math.exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
         U3 += hjik
+#    print('U3: \t'+str(U3))
     #end for 3 body loops
     t2 = time.clock()
 #    print("Time required for system 3 body potential:\t" + str(t2-t1))
 
     #total 2 and 3 body potentials
-    U = (U2+U3)
+    U = (U2+U3)*epsil
 
     U_average = U/Natm
     U2_average = U2/Natm
@@ -359,10 +393,10 @@ def nlist2(
     np.ndarray[double] bx,
     np.ndarray[double] by,
     np.ndarray[double] bz,
-    double rc,
+    double rc, double rs,
     np.ndarray[double,ndim=2] x):
 
-    cdef int nx,ny,nz,d,m,i,j,k,m2,natm,ncntf,pcntf
+    cdef int nx,ny,nz,d,m,i,j,k,m2,natm,ncntf,pcntf,amax,amin
     cdef int binx,biny,binz,binx2,biny2,binz2,nlen,atm1,atm2
     
     cdef double t0,blx,bly,blz,idnx,idny,idnz
@@ -370,11 +404,11 @@ def nlist2(
 
     t0 = time.clock()
     #number of bins in each direction, dictated by box dimension and cutoff radius
-    nx = int(np.floor((bx[1]-bx[0])/rc))
-    ny = int(np.floor((by[1]-by[0])/rc))
-    nz = int(np.floor((bz[1]-bz[0])/rc))
+    nx = int(np.floor((bx[1]-bx[0])/(rc+rs)))
+    ny = int(np.floor((by[1]-by[0])/(rc+rs)))
+    nz = int(np.floor((bz[1]-bz[0])/(rc+rs)))
 
-    rc = rc**2  #compare distances squared to avoid a sqrt calculation on each distance
+    rc2 = (rc+rs)**2  #compare distances squared to avoid a sqrt calculation on each distance
 
     #sub-bins, 2 per rc division
     d = 2
@@ -408,7 +442,7 @@ def nlist2(
     cdef np.ndarray[np.int_t,ndim=2] atmbin = np.zeros((natm,3),dtype=np.int)
 
     #neighborlist & nlist pointer initializaton
-    cdef np.ndarray[np.int_t] nlistf = np.zeros((natm*20),dtype=np.int)
+    cdef np.ndarray[np.int_t] nlistf = np.zeros((natm*50),dtype=np.int)
 
     cdef np.ndarray[np.int_t] nlistpf = np.zeros(natm+1,dtype=np.int)
     #counter for total number of neighbors found
@@ -420,7 +454,13 @@ def nlist2(
     #pointer index count
     pcntf = 1
 
-    print('Number of atoms in list:\t' + str(natm))
+    #Initialize some Rij, Cij matrices for use in potential functions
+    cdef np.ndarray[double,ndim=2] Rij = np.zeros((natm,natm))
+
+    #stored components of exponential terms
+    cdef np.ndarray[double,ndim=2] Cij = np.zeros((natm,natm))
+
+#    print('Number of atoms in list:\t' + str(natm))
 
     for i in range(natm):
         binx = int(np.floor((x[i,0]-bx[0])*idnx))
@@ -508,11 +548,24 @@ def nlist2(
 
                         #squared distance for squared rc
                         dx = np.dot(x1-x2,x1-x2)
-                        if(dx<rc):
+                        if(dx<rc2):
                             #place second atom's index on the full neighbor list #includes duplicate pairs
                             ncntp[atm1] = ncntp[atm1]+1
                             nlistf[ncntf] = atm2
                             ncntf += 1
+
+                        #now calculate and store quantities that need to be initialized for potential
+#                            if(atm1<atm2):
+                            rij = dx**0.5
+                            Rij[atm1,atm2] = rij*isigmaSi
+#                            print('scaled rij \t' + str(rij*isigmaSi))
+                            #checking for distances outside of cutoff radius: outside will result in a potential of ~0
+                            if rij > rc:
+                                cij = -1e20
+                            else: 
+                                cij = 1/(Rij[atm1,atm2]-al)
+                            Cij[atm1,atm2] = cij
+#                            print('cij \t'+str(cij))
                     #end m2 (second atom index)
                     kflagm = False
                     kflagp = False
@@ -534,9 +587,9 @@ def nlist2(
 #    print('Full Neighbors found: '+str(ncntf))
 #    print('Time elapsed for 2body lists: ' +str(time.clock()-t0))
 #    print('Maximum neighbor count: ' +str(int(max(ncntp))))
-#    print('Average neighbor count: ' +str(np.average(ncntp)))
+    print('Average neighbor count: ' +str(np.average(ncntp)))
 #    print(int(sum(ncntp)))
-    return nlistf, nlistpf
+    return nlistf, nlistpf, Rij, Cij
 
 #function for creating a 3 body neighborlist out of the full 2 body list (includes 3 of each triplet, once each for each central atom numbering)
 #optimized for Cython
@@ -552,11 +605,11 @@ def nlist3(
     t0 = time.clock()
 
     natm = np.shape(nlistpf)[0]-1
-    nlist = np.zeros((natm*200,3),dtype = np.int)
+    nlist = np.zeros((natm*500,3),dtype = np.int)
 
     #3body pointer stores the triplet indices of each triplet involved with atm1
     #first index out of 120*4 is how many triplet indices follow
-    nlistp = np.zeros((natm,120*4),dtype = np.int)
+    nlistp = np.zeros((natm,378*4),dtype = np.int)
 #    nlistp[:,0] = 0
     #counter for triplets found
     cnt3 = 0
