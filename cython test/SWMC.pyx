@@ -54,18 +54,30 @@ cpdef p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1,
   out[1] = v2[1]-v1[1];
   out[2] = v2[2]-v1[2];
   if (out[0] > b0h):
-    out[0] -= box[0]
+    out[0] -= box[0];
   elif (out[0] < -b0h):
-    out[0] += box[0]
+    out[0] += box[0];
   if (out[1] > b1h):
-    out[1] -= box[1]
+    out[1] -= box[1];
   elif (out[1] < -b1h):
-    out[1] += box[1]
+    out[1] += box[1];
   if (out[2] > b2h):
-    out[2] -= box[2]
+    out[2] -= box[2];
   elif (out[2] < -b2h):
-    out[2] += box[2]
+    out[2] += box[2];
+#  print('triple' + str(v1) +' '+ str(v2) + ' '+str(out))
   return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
+
+def periodic_disp(pos1, pos2, Lb, disij): 
+  for l in range(3): 
+    disij[l] = pos2[l]-pos1[l]
+    if disij[l] > Lb[l]/2:
+      disij[l] -= Lb[l] 
+    elif -disij[l] > Lb[l]/2:
+      disij[l] += Lb[l] 
+#  print('triple' + str(pos1) +' '+ str(pos2) + ' '+str(disij))
+  return sqrt(disij[0]*disij[0]+disij[1]*disij[1]+disij[2]*disij[2])
+
 
 
 @cython.boundscheck(False)
@@ -208,11 +220,11 @@ def SWPotOne(
     for i in range(nlist2p[atm1],nlist2p[atm1+1]):
         atmj = nlist2[i]
 
-        rij = p_disp_in_box(X[atm1,:],X[atmj,:],Lb,disij)*isigmaSi
-        rij2 = p_disp_in_box(Xi,X[atmj,:],Lb,disij2)*isigmaSi
+        rij = c_disp_in_box(X[atm1,:],X[atmj,:],Lb,disij)*isigmaSi
+        rij2 = c_disp_in_box(Xi,X[atmj,:],Lb,disij2)*isigmaSi
 
-        print(rij)
-        print(rij2)
+#        print(rij)
+#        print(rij2)
 
 
 #        disij = X[atmj,:]-X[atm1,:]
@@ -238,17 +250,17 @@ def SWPotOne(
 
         #checking for distances outside of cutoff raidus: outside will result in a potential of ~0            
         if rij > al:
-            cij = -10e20
+            Utemp = 0
         else: 
             cij = 1/(rij-al)
+            Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)
 
         if rij2 > al:
-            cij2 = -10e20
+            Utemp2 = 0
         else: 
             cij2 = 1/(rij2-al)
+            Utemp2 = A*(B*1.0/(rij2*rij2*rij2*rij2)-1)*exp(cij2)
 
-        Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)
-        Utemp2 = A*(B*1.0/(rij2*rij2*rij2*rij2)-1)*exp(cij2)
 
         U2_old += Utemp
         U2_new += Utemp2
@@ -271,43 +283,47 @@ def SWPotOne(
     for i in range(nlist3p[atm1,0]):
         #extract the triplet array using the pointer list's index
         atmi, atmj, atmk = nlist3[nlist3p[atm1,i+1]]
-        print(atmi,atmj,atmk)
-        print(Xi)
-        print(X[atm1,:])
+#        print(atmi,atmj,atmk)
+#        print(Xi)
+#        print(X[atm1,:])
         if atmi == atm1:
-            assert(not np.allclose(X[atmi,:],Xi))
-            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-            p_disp_in_box(Xi,X[atmj,:],Lb,disij2)
-            print(disij)
-            print(disij2)
-            p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-            p_disp_in_box(Xi,X[atmk,:],Lb,disik2)
-            print(disik)
-            print(disik2)
+#            assert(not np.allclose(X[atmi,:],Xi))
+
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            c_disp_in_box(Xi,X[atmj,:],Lb,disij2)
+
+#            print(disij)
+#            print(disij2)
+
+            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            c_disp_in_box(Xi,X[atmk,:],Lb,disik2)
+
+#            print(disik)
+#            print(disik2)
 
         elif atmj == atm1:
-            assert(not np.allclose(X[atmi,:],Xi))
+#            assert(not np.allclose(X[atmi,:],Xi))
 
-            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-            p_disp_in_box(X[atmi,:],Xi,Lb,disij2)
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            c_disp_in_box(X[atmi,:],Xi,Lb,disij2)
 
-            p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-            disik2 = disik
+            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            disik2[:] = disik[:]
 
         elif atmk == atm1:        
-            assert(not np.allclose(X[atmi,:],Xi))
+#            assert(not np.allclose(X[atmi,:],Xi))
 
-            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-            disij2 = disij
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            disij2[:] = disij[:]
 
-            p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-            p_disp_in_box(X[atmi,:],Xi,Lb,disik2)
+            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            c_disp_in_box(X[atmi,:],Xi,Lb,disik2)
 
         else:
             print('error on 3body potential distances')
 
-        print(disik)
-        print(disik2)
+#        print(disik)
+#        print(disik2)
         # loop through x,y,z distance components and find nearest images
 #        for l in range(3): 
 #            if disij[l] > Lb[l]/2:
@@ -402,12 +418,15 @@ def SWPotOne(
 
 #    t2 = time.clock()
 #    print("Time required for system 3 body potential:\t" + str(t2-t1))
-    print(U2_old,U3_old)
-    print(U2_new,U3_new)
+#    print(U2_old,U3_old)
+#    print(U2_new,U3_new)
     U_old = U2_old+U3_old*lambdaSi
     U_new = U2_new+U3_new*lambdaSi
     dPot = (U_new-U_old)*epsil
-    return dPot
+    dPotU2 = U2_new-U2_old
+    dPotU3 = U3_new-U3_old
+#    print(U2_new-U2_old)
+    return dPot, dPotU2, dPotU3
 
 #Not bothering to optimize, since it's only called once
 def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
@@ -433,11 +452,11 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
         for j in range(nlist2p[i],nlist2p[i+1]):
             atmj = nlist2[j]
             #only calculate each pair's energy once
-            if atmi > atmj: continue
+#            if atmi > atmj: continue
 #            rij = Rij[atmi,atmj]
 #            cij = Cij[atmi,atmj]
 #            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
-            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             # loop through x,y,z distance components and find nearest images
 #            for l in range(3): 
 #                if disij[l] > Lb[l]/2:
@@ -448,11 +467,11 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
             rij = np.linalg.norm(disij)*isigmaSi            
 
             if rij > al:
-                cij = -10e20
+                Utemp = 0
             else: 
                 cij = 1/(rij-al)
+                Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)*0.5
 
-            Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)
 #            print('Utemp 2 body:\t' + str(Utemp))
             U2 += Utemp
 #        print(U2)
@@ -470,8 +489,8 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
 #        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
 #        disik = X[atmk,:]-X[atmi,:]
-        p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-        p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+        c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+        c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
         
 
         # loop through x,y,z distance components and find nearest images
@@ -517,7 +536,8 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
     #total 2 and 3 body potentials
     U = (U2+U3)*epsil
-
+    U2 = U2*epsil
+    U3 = U3*epsil
     U_average = U/Natm
     U2_average = U2/Natm
     U3_average = U3/Natm
@@ -526,7 +546,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 #    print("Average potential per atom: %1.10f" % U_average)
 #    print("Average 2 body potential: %1.10f" % U2_average)
 #    print("Average 3 body potential: %1.10f" % U3_average)
-    return U
+    return U, U2, U3
 
 
 #optimizing for cython
@@ -554,13 +574,14 @@ def nlist2(
     rc2 = (rc+rs)*(rc+rs)  #compare distances squared to avoid a sqrt calculation on each distance
 
     #sub-bins, 2 per rc division
-    d = 2
+    d = 3
 
     #(trying to reduce number per bin for looping)
     nx = nx*d
     ny = ny*d
     nz = nz*d
 
+#    print(nx,ny,nz)
     idnx = nx/(bx[1]-bx[0])
     idny = ny/(by[1]-by[0])
     idnz = nz/(bz[1]-bz[0])
@@ -752,7 +773,7 @@ def nlist3(
 
     #3body pointer stores the triplet indices of each triplet involved with atm1
     #first index out of 120*4 is how many triplet indices follow
-    nlistp = np.zeros((natm,378*4),dtype = np.int)
+    nlistp = np.zeros((natm,378*10),dtype = np.int)
 #    nlistp[:,0] = 0
     #counter for triplets found
     cnt3 = 0
