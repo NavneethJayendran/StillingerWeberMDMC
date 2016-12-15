@@ -550,6 +550,43 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 #    print("Average 3 body potential: %1.10f" % U3_average)
     return U, U2, U3
 
+#periodic harmonic potential for free energy integration
+#requires a reference location for each atom, current location, spring constant, and box dims
+
+def HPall(
+    np.ndarray[double,ndim=2] Xref,
+    np.ndarray[double,ndim=2] Xsys,
+    double k,
+    np.ndarray[double] Lb):
+
+    cdef int natm,i
+    cdef double U = 0
+    cdef double r
+    cdef np.ndarray[double] dis = np.zeros(3)
+    natm = Xref.shape[0]
+    for i in range(natm):
+        r = c_disp_in_box(Xref[i,:],Xsys[i,:],Lb,dis)
+        U+=r*r
+
+    U = U*k*0.5
+    return U
+
+def HPone(
+    np.ndarray[double] xref,
+    np.ndarray[double] x_old,
+    np.ndarray[double] x_new,
+    double k,
+    np.ndarray[double]Lb):
+
+    cdef double dU = 0
+    cdef double r_old,r_new
+    cdef np.ndarray[double] dis = np.zeros(3)
+    r_old = c_disp_in_box(x_old,xref,Lb,dis)
+    r_new = c_disp_in_box(x_new,xref,Lb,dis)
+
+    dU = (r_new*r_new-r_old*r_old)*k*0.5
+    return dU
+#end HP()
 
 #optimizing for cython
 #@cython.boundscheck(False)
