@@ -22,7 +22,7 @@ cdef pointer_to_numpy_array_float64(void * ptr, np.npy_intp size):
 
 cdef extern from "cutils.h":
   double distance(double *v1, double *v2)
-  double *disp_in_box(double *v1, double *v2, double *box)
+  void disp_in_box(double *v1, double *v2, double *box, double *out)
   void normalize2_3d(double *vec)
   double norm2_3d(double *vec)
   double dot3d(double *vec1, double *vec2)
@@ -38,9 +38,10 @@ def c_distance(np.ndarray[double, ndim=1, mode="c"] v1 not None,
 @cython.wraparound(False)
 def c_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
                   np.ndarray[double, ndim=1, mode="c"] v2 not None,
-                  np.ndarray[double, ndim=1, mode="c"] box not None):
-  cdef double *data = disp_in_box(&v1[0], &v2[0], &box[0])
-  return pointer_to_numpy_array_float64(data,3)
+                  np.ndarray[double, ndim=1, mode="c"] box not None,
+                  np.ndarray[double, ndim=1, mode="c"] out not None):
+
+  disp_in_box(&v1[0], &v2[0], &box[0], &out[0])
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
