@@ -26,19 +26,11 @@ def printU(U,Uh,temp,fname=None):
 
 def printnl(nl2,np2,l,v,atmi):
     filename = 'nl2s.dat'
-#    l = SortedSet(l)
-#    v = SortedSet(v)
     n = SortedSet(nl2[np2[atmi]:np2[atmi+1]])
     d = n.difference(l)
 
     with open(filename,"a") as myfile:
-#        for i in range(np2[atmi]:np2[atmi+1])
-#        myfile.write( str(nl2[np2[atmi]:np2[atmi+1]]))        
         myfile.write(str(list(d)))
-#        myfile.write('\n')
-#        myfile.write('brute neighbor check: atom ID %1.4i'%atmi)
-#        myfile.write(str(l))
-#        myfile.write(str(v))
         myfile.write('\n \n')
 
 #function to ensure atoms stay within box after moving
@@ -80,10 +72,7 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
 
   dr = 0.2
   jcnt = 0
-#  gr = np.zeros(
   kvecs = SF.legal_kvecs(5,Lb)
-#  print(np.shape(kvecs)[0],np.shape(kvecs)[1])
-#  print(kvecs)
 
   #SW potential
   U,U2,U3 = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
@@ -102,44 +91,20 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
         avecnt+=1
     print('U from dU: \t %1.4f'%(U))
 
-    for j in range(npart):
-        #neighborlist troubleshooting
-#      if i%5 ==0 and j==0:
-    #        Utot,U2tot,U3tot = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
-#            v,l = br.twobody_sanity(j, atom_pos, rs, rc)
-#            printnl(nl2,np2,l,v,j)
-
-#            print('Utotal from full function: \t %1.5f'%Utot)
-#      if i> 199 and i%200 == 0:
-#          if jcnt == 0:
-#            gr = SF.RDF(atom_pos,Lb,dr)
-#            sk = SF.Sk(kvecs,atom_pos)
-#            blf = SF.BLF(atom_pos)
-#            jcnt +=1 
-#          else:
-#            gr += SF.RDF(atom_pos,Lb,dr)
-#            sk += SF.Sk(kvecs,atom_pos)
-#            blf += SF.BLF(atom_pos)
-#            jcnt +=1
-        
-      #j = int(np.random.random()*npart)
+    for j in range(npart):        
       #don't overwrite old states in case of rejection
       recomputed = False #did we remake the neighborlists?
       dist_max1_new = np.copy(dist_max1)
       dist_max2_new = np.copy(dist_max2)
 
       dispj_new = disp_list[j]
-#      print('dispj_new'+str(dispj_new))
-      #end stores
 
       dv = np.random.rand(3)-0.5   #uniform random vector
       dv /= np.linalg.norm(dv)  #uniform random unit vector
       dv *= min(rs/2,abs(np.random.normal(sigma,var))) #scale by (trunc'd) Gaussian
-#      print('dv' + str(dv))
       dispj_new += dv       #add dv to displacement j
       curr_dist = np.linalg.norm(dispj_new) #consider distance
 
-#      print((curr_dist,dist_max1_new,dist_max2_new))
       if sum(heapq.nlargest(2,(curr_dist,dist_max1_new,dist_max2_new))) > rs:
         #if move would cause a particle to move past threshold value, flag for new neighborlist after successfull
         recomputed = True
@@ -153,7 +118,6 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
       dUh = SWMC.HPone(Xref[j],atom_pos[j],atom_pos[j]+dv,sprng,Lb)
       if math.exp(-(dU+dUh)*beta) >= np.random.rand(): #accepted move!
         i_acc += 1
-#        print('dU for atom %3.0i is %1.4f'%(j,dU))
         if recomputed == True:
           print('New Neighborlist!')
           dist_max1 = curr_dist
@@ -163,7 +127,6 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
           recomputed = False
         else:
             dist_max1,dist_max2 = heapq.nlargest(2,(dist_max1,dist_max2,curr_dist))
-#            print(sum((dist_max1,dist_max2)))
         U += dU           #update energy
         U2+= dU2
         U3+= dU3
@@ -181,16 +144,6 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
     printU(U,Uh,temp,fname=fname)
   return USWave/avecnt, UHave/avecnt, atom_pos
 
-#  blf/=jcnt
-#  sk /=jcnt
-#  gr /=jcnt
-#  np.savetxt('%4.0iK_LiquidBLF.dat'%temp,blf)
-#  np.savetxt('%4.0iK_Liquidsf.dat'%temp,sk)
-#  np.savetxt('%4.0iK_Liquidgr.dat'%temp,gr)
-#  np.savetxt('%4.0iK_BLF.dat'%temp,blf)
-#  np.savetxt('%4.0iK_sf.dat'%temp,sk)
-#  np.savetxt('%4.0iK_gr.dat'%temp,gr)
-
 if __name__ == "__main__":
     lat = 5.431
     nx,ny,nz = (3,3,3)
@@ -199,30 +152,31 @@ if __name__ == "__main__":
     rs = 0.6
     k = [35,25,15,5,1]
     vari = [0.05, 0.06, 0.07,0.08,0.15] 
-    filenames = ['2000K_k=35','2000K_k=25','2000K_k=15','2000K_k=5','2000K_k=1']
-    xstart = np.loadtxt('liquidstart2400.dat')
+    #change values here with run temperature to get an integrable free energy series
+    filenames = ['Solid2200K_k=35','Solid2200K_k=25','Solid2200K_k=15','Solid2200K_k=5','Solid2200K_k=1']
+    xstart = np.loadtxt('2000Kstart.dat')
     harmU = np.zeros(len(k))
     SWU = np.zeros(len(k))
 
-    filename = '2000K_Coupled_EnergyDat.dat'
+    filename = 'Solid2200K_Coupled_EnergyDat.dat'
     with open(filename,"w") as myfile:        
         myfile.write('SW Potential Contribution, Harmonic Potential, spring constant \n')
 
     for i in range(len(harmU)):
-        harmU[i],SWU[i], xstart = MC_loop(lat,rc,rs,var=vari[i],temp = 2000,nsweeps=1000, fname = filenames[i], sprng=k[i],atom_pos = xstart)
+        harmU[i],SWU[i], xstart = MC_loop(lat,rc,rs,var=vari[i],temp = 2200,nsweeps=1000, fname = filenames[i], sprng=k[i],atom_pos = xstart)
         with open(filename,"a") as myfile:
             myfile.write('%1.6f %1.6f %1.3i \n'%(harmU[i],SWU[i],k[i]))
 
+
+    #troubleshooting for potential functions, not normally run
     testrun = False
     if testrun == True:
         lat = 5.431
-#        lat = 4.7192
 
         sigmasi = 2.0951 #a stillinger weber parameter 
 
         x = SWMC.PureSi(3,3,3,lat)
         Natm = 3*3*3*8
-#        x = xstart
         nx = np.array([-1.5,1.5])
         ny = np.array([-1.5,1.5])
         nz = np.array([-1.5,1.5])

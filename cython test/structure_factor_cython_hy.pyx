@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from libc.math cimport sin, cos, sqrt
+import SWMC
 
 cimport numpy as np
 cimport cython
@@ -61,13 +63,13 @@ def legal_kvecs(maxk,Lb):
 def rhok(kvec,X):
     cdef int i
     value = complex(0.0,0.0)
-    cdef double dot_product,cos,sin
+    cdef double dot_product,cos1,sin1
     #computes \sum_j \exp(i * k \dot r_j)
     for i in range(natom):
         dot_product = np.dot(kvec,X[i,:])
-        cos = np.cos(dot_product)
-        sin = np.sin(dot_product)
-        value += complex(cos , sin)
+        cos1 = cos(dot_product)
+        sin1 = sin(dot_product)
+        value += complex(cos1 , sin1)
     return value
 # end def rhok
 

@@ -65,7 +65,6 @@ cpdef p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1,
     out[2] -= box[2];
   elif (out[2] < -b2h):
     out[2] += box[2];
-#  print('triple' + str(v1) +' '+ str(v2) + ' '+str(out))
   return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
 
 def periodic_disp(pos1, pos2, Lb, disij): 
@@ -75,10 +74,6 @@ def periodic_disp(pos1, pos2, Lb, disij):
       disij[l] -= Lb[l] 
     elif -disij[l] > Lb[l]/2:
       disij[l] += Lb[l] 
-#<<<<<<< HEAD
-#  print('triple' + str(pos1) +' '+ str(pos2) + ' '+str(disij))
-#=======
-#>>>>>>> 860d70e7d29ebfc5cc2530c029a2bc750e78a887
   return sqrt(disij[0]*disij[0]+disij[1]*disij[1]+disij[2]*disij[2])
 
 
@@ -112,9 +107,8 @@ cdef double ec         = 1.60217646e-19 # elementary charge (C)
 cdef double ao         = 0.053e-09 # Bohr radius
 cdef double massSi     = 46.637063e-27
 
-cdef double epsil      = 0.043*50
-#cdef double epsil      = 1
 # Stillinger-Weber Constants
+cdef double epsil      = 0.043*50
 cdef double sigmaSi    = 2.0951
 cdef double isigmaSi   = 1/sigmaSi
 
@@ -125,8 +119,6 @@ cdef double qsi        = 0.0
 cdef double al         = 1.8
 cdef double lambdaSi   = 21.0
 cdef double gamma      = 1.2
-
-#    cdef np.ndarray[double,ndim=2] Rij_new = np.copy(Rij)
 
 #function file for initializing silicon crystal lattice
 #nx,ny,nz are number of unit cells in each direction; a is lattice constant (width of cubic cells)
@@ -208,11 +200,6 @@ def SWPotOne(
     cdef np.ndarray[double] disik2 = np.zeros(3)
     cdef double t0 = time.clock()
 
-#    cdef np.ndarray[double,ndim=2] Rij_new = np.copy(Rij)
-#    cdef np.ndarray[double,ndim=2] Cij_new = np.copy(Cij)
-#    cdef np.ndarray[double,ndim=2] X_new = np.copy(X)
-#    X_new[atm1,:] = Xi
-
     cdef double U2_old = 0
     cdef double U2_new = 0
     cdef double U3_old = 0
@@ -225,31 +212,6 @@ def SWPotOne(
 
         rij = c_disp_in_box(X[atm1,:],X[atmj,:],Lb,disij)*isigmaSi
         rij2 = c_disp_in_box(Xi,X[atmj,:],Lb,disij2)*isigmaSi
-
-#        print(rij)
-#        print(rij2)
-
-
-#        disij = X[atmj,:]-X[atm1,:]
-#        disij2 = X[atmj,:]-Xi # vectors from i to j, i to k
-
-#        for l in range(3): 
-#            if disij[l] > Lb[l]/2:
-#                disij[l] = disij[l] - Lb[l]
-#            elif -disij[l] > Lb[l]/2:
-#                disij[l] = disij[l] + Lb[l]
-
-#        for l in range(3): 
-#            if disij2[l] > Lb[l]/2:
-#                disij2[l] = disij2[l] - Lb[l]
-#            elif -disij2[l] > Lb[l]/2:
-#                disij2[l] = disij2[l] + Lb[l]
-
-
-        #old distance
-#        rij = c_norm2_3d(disij)*isigmaSi
-        #new distance
-#        rij2 = c_norm2_3d(disij2)*isigmaSi
 
         #checking for distances outside of cutoff raidus: outside will result in a potential of ~0            
         if rij > al:
@@ -268,44 +230,19 @@ def SWPotOne(
         U2_old += Utemp
         U2_new += Utemp2
 
-#        if(flag > 10):
-#            print('atom1: %1.3i atomj: %1.3i old U2 %1.5f: \t'%(atm1,atmj,Utemp))
-        
-#            print('new U2: \t' + str(U2_new))
-#            if U2_old > 100:
-#                print('atom1: %1.3i atomj: %1.3i old Rij %1.5f: \t'%(atm1,atmj,rij))
-
-#                exit()
-
-    # end 2 body loop
-
-#    t1 = time.clock()
-#    print("Time required for one atom 2 body potential:\t" + str(t1-t0))
-
     #triplet potetial contribution
     for i in range(nlist3p[atm1,0]):
         #extract the triplet array using the pointer list's index
         atmi, atmj, atmk = nlist3[nlist3p[atm1,i+1]]
-#        print(atmi,atmj,atmk)
-#        print(Xi)
-#        print(X[atm1,:])
         if atmi == atm1:
-#            assert(not np.allclose(X[atmi,:],Xi))
 
             c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             c_disp_in_box(Xi,X[atmj,:],Lb,disij2)
 
-#            print(disij)
-#            print(disij2)
-
             c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
             c_disp_in_box(Xi,X[atmk,:],Lb,disik2)
 
-#            print(disik)
-#            print(disik2)
-
         elif atmj == atm1:
-#            assert(not np.allclose(X[atmi,:],Xi))
 
             c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             c_disp_in_box(X[atmi,:],Xi,Lb,disij2)
@@ -314,7 +251,6 @@ def SWPotOne(
             disik2[:] = disik[:]
 
         elif atmk == atm1:        
-#            assert(not np.allclose(X[atmi,:],Xi))
 
             c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             disij2[:] = disij[:]
@@ -325,34 +261,6 @@ def SWPotOne(
         else:
             print('error on 3body potential distances')
 
-#        print(disik)
-#        print(disik2)
-        # loop through x,y,z distance components and find nearest images
-#        for l in range(3): 
-#            if disij[l] > Lb[l]/2:
-#                disij[l] = disij[l] - Lb[l]
-#            elif -disij[l] > Lb[l]/2:
-#                disij[l] = disij[l] + Lb[l]
-            # end if
-
-#            if disik[l] > Lb[l]/2:
-#                disik[l] = disik[l] - Lb[l]
-#            elif -disik[l] > Lb[l]/2:
-#                disik[l] = disik[l] + Lb[l]
-            # end if
-
-#            if disij2[l] > Lb[l]/2:
-#                disij2[l] = disij2[l] - Lb[l]
-#            elif -disij2[l] > Lb[l]/2:
-#                disij2[l] = disij2[l] + Lb[l]
-            # end if
-
-#            if disik2[l] > Lb[l]/2:
-#                disik2[l] = disik2[l] - Lb[l]
-#            elif -disik2[l] > Lb[l]/2:
-#                disik2[l] = disik2[l] + Lb[l]
-            # end if
-
         #old distance
         rij = c_norm2_3d(disij)
         rik = c_norm2_3d(disik)
@@ -360,12 +268,6 @@ def SWPotOne(
         #new distance
         rij2 = c_norm2_3d(disij2)
         rik2 = c_norm2_3d(disik2)
-#        if rik == 0:
-#            print('Atom i and Atom k: \t' + str(atmi)+' '+str(atmk))
-#            print(amin2,amax2)
-#        if rij == 0:
-#            print('Atom i and Atom j: \t' + str(atmi)+' '+str(atmj))
-#            print(amin,amax)
 
         #old cos of angle
         dot = c_dot3d(disij,disik)
@@ -402,38 +304,21 @@ def SWPotOne(
             cik2 = -10e20
         else: 
             cik2 = 1/(rik2-al)
-
-
-        #extract cij from 2 body calculations
-#        cij = Cij[amin,amax]
-#        cik = Cij[amin2,amax2]
-#        cij2 = Cij_new[amin,amax]
-#        cik2 = Cij_new[amin2,amax2]
     
-#        print(cij,cik)
         hjik = exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
         hjik2 = exp(gamma*(cij2+cik2))*(cosjik2+1./3.)*(cosjik2+1./3.)
         U3_old += hjik
         U3_new += hjik2
-#    if(flag > 10):
-#        print('old U3: \t' + str(U3_old))
-#        print('new U3: \t' + str(U3_new))
 
-#    t2 = time.clock()
-#    print("Time required for system 3 body potential:\t" + str(t2-t1))
-#    print(U2_old,U3_old)
-#    print(U2_new,U3_new)
     U_old = U2_old+U3_old*lambdaSi
     U_new = U2_new+U3_new*lambdaSi
     dPot = (U_new-U_old)*epsil
     dPotU2 = U2_new-U2_old
     dPotU3 = U3_new-U3_old
-#    print(U2_new-U2_old)
     return dPot, dPotU2, dPotU3
 
 #Not bothering to optimize, since it's only called once
 def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
-#    t0 = time.clock()
     Natm = np.shape(X)[0]
     U2 = 0 #initial system 2 body potential energy scalar
     U3 = 0 #initial system 3 body potential energy scalar
@@ -443,30 +328,12 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
     cdef np.ndarray[double] disik = np.zeros(3)
     cdef np.ndarray[double] disik2 = np.zeros(3)
 
-    #stored distances
-#    Rij = np.zeros((Natm,Natm))
-
-    #stored components of exponential terms
-#    Cij = np.zeros((Natm,Natm))
-
     #2 body potential
     for i in range(Natm):
         atmi = i
         for j in range(nlist2p[i],nlist2p[i+1]):
             atmj = nlist2[j]
-            #only calculate each pair's energy once
-#            if atmi > atmj: continue
-#            rij = Rij[atmi,atmj]
-#            cij = Cij[atmi,atmj]
-#            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
             c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-            # loop through x,y,z distance components and find nearest images
-#            for l in range(3): 
-#                if disij[l] > Lb[l]/2:
-#                    disij[l] = disij[l] - Lb[l]
-#                elif -disij[l] > Lb[l]/2:
-#                    disij[l] = disij[l] + Lb[l]
-                # end if
             rij = np.linalg.norm(disij)*isigmaSi            
 
             if rij > al:
@@ -475,13 +342,9 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
                 cij = 1/(rij-al)
                 Utemp = A*(B*1.0/(rij*rij*rij*rij)-1)*exp(cij)*0.5
 
-#            print('Utemp 2 body:\t' + str(Utemp))
             U2 += Utemp
-#        print(U2)
         # end for
     # end for 2 body loop
-#    t1 = time.clock()
-#    print("Time required for system 2 body potential:\t" + str(t1-t0))
 
     #3 body potential
     for i in range(np.shape(nlist3)[0]):
@@ -490,27 +353,8 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
         atmj = nlist3[i,1]
         atmk = nlist3[i,2]
     
-#        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
-#        disik = X[atmk,:]-X[atmi,:]
         rij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
         rik = c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-
-        # loop through x,y,z distance components and find nearest images
-#        for l in range(3): 
-#            if disij[l] > Lb[l]/2:
-#                disij[l] = disij[l] - Lb[l]
-#            elif -disij[l] > Lb[l]/2:
-#                disij[l] = disij[l] + Lb[l]
-            # end if
-
-#            if disik[l] > Lb[l]/2:
-#                disik[l] = disik[l] - Lb[l]
-#            elif -disik[l] > Lb[l]/2:
-#                disik[l] = disik[l] + Lb[l]
-            # end if
-
-#        rij = c_norm2_3d(disij)
-#        rik = c_norm2_3d(disik)
 
         dot = c_dot3d(disij,disik)
         cosjik = dot/(rij*rik)
@@ -531,11 +375,6 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
         hjik = lambdaSi*exp(gamma*(cij+cik))*(cosjik+1./3.)*(cosjik+1./3.)
         U3 += hjik
-#    print('U3: \t'+str(U3))
-    #end for 3 body loops
-#    t2 = time.clock()
-#    print("Time required for system 3 body potential:\t" + str(t2-t1))
-
     #total 2 and 3 body potentials
     U = (U2+U3)*epsil
     U2 = U2*epsil
@@ -544,10 +383,6 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
     U2_average = U2/Natm
     U3_average = U3/Natm
 
-#    print(U_average)
-#    print("Average potential per atom: %1.10f" % U_average)
-#    print("Average 2 body potential: %1.10f" % U2_average)
-#    print("Average 3 body potential: %1.10f" % U3_average)
     return U, U2, U3
 
 #periodic harmonic potential for free energy integration
@@ -614,6 +449,7 @@ def nlist2(
     pcntf = 1
     ncntf = 0
 
+    #we're using a bruteforce check now since it is simpler and of similar speed
     if bflag == 1:
         for i in range(natm):
             for j in range(natm):
@@ -626,6 +462,8 @@ def nlist2(
             pcntf +=1
         return nlistf,nlistpf
 
+
+    #this is all related to the cell method of determining neighbors; great for large systems, but not amazing for 216 atoms
     t0 = time.clock()
     #number of bins in each direction, dictated by box dimension and cutoff radius
     nx = int(np.floor((bx[1]-bx[0])/(rc+rs)))
@@ -853,10 +691,6 @@ def nlist3(
                 nlistp[atm2,0] = nlistp[atm2,0]+1
                 nlistp[atm3,0] = nlistp[atm3,0]+1
 
-#                print(nlistp[atm1,0])
-#                print(nlistp[atm2,0])
-#                print(nlistp[atm3,0])
-
                 nlist[cnt3,:] = atm1,atm2,atm3
                 nlistp[atm1,nlistp[atm1,0]] = cnt3
                 nlistp[atm2,nlistp[atm2,0]] = cnt3
@@ -866,8 +700,6 @@ def nlist3(
 
     nlist = np.delete(nlist,np.s_[cnt3::],axis=0)
 
-#    print('Time elapsed for 3body lists: ' +str(time.clock()-t0))
-#    print('Triplets found:' +str(cnt3))
     return nlist,nlistp
 
 
