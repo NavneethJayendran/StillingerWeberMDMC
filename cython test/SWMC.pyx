@@ -51,17 +51,17 @@ def p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
   out[0] = v2[0]-v1[0];
   out[1] = v2[1]-v1[1];
   out[2] = v2[2]-v1[2];
-  if (out[0] > b0h)
+  if (out[0] > b0h):
     out[0] -= box[0];
-  elif (out[0] < -b0h)
+  elif (out[0] < -b0h):
     out[0] += box[0];
   if (out[1] > b1h)
     out[1] -= box[1];
-  elif (out[1] < -b1h)
+  elif (out[1] < -b1h):
     out[1] += box[1];
-  if (out[2] > b2h)
+  if (out[2] > b2h):
     out[2] -= box[2];
-  elif (out[2] < -b2h)
+  elif (out[2] < -b2h):
     out[2] += box[2];
   return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
 
