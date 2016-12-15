@@ -86,6 +86,7 @@ cdef double al         = 1.8
 cdef double lambdaSi   = 21.0
 cdef double gamma      = 1.2
 
+#    cdef np.ndarray[double,ndim=2] Rij_new = np.copy(Rij)
 
 #function file for initializing silicon crystal lattice
 #nx,ny,nz are number of unit cells in each direction; a is lattice constant (width of cubic cells)
@@ -141,7 +142,6 @@ def PureSi(nx,ny,nz,a):
 
       return X
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def SWPotOne(
@@ -161,7 +161,11 @@ def SWPotOne(
     cdef int i,j,l, amin, amax, amin2, amax2
     cdef int natm = X.shape[0]
     cdef double rij, rik, rij2, rik2, Utemp, Utemp2, dot, dot2, cosjik, cosjik2, hjik, hjik2
-    cdef np.ndarray[double] disij, disik, disij2, disik2
+
+    cdef np.ndarray[double] disij = np.zeros(3)
+    cdef np.ndarray[double] disij2 = np.zeros(3)
+    cdef np.ndarray[double] disik = np.zeros(3)
+    cdef np.ndarray[double] disik2 = np.zeros(3)
     cdef double t0 = time.clock()
 
 #    cdef np.ndarray[double,ndim=2] Rij_new = np.copy(Rij)
@@ -179,8 +183,8 @@ def SWPotOne(
     for i in range(nlist2p[atm1],nlist2p[atm1+1]):
         atmj = nlist2[i]
 
-        disij = c_disp_in_box(X[atm1,:],X[atmj,:],Lb)
-        disij2 = c_disp_in_box(Xi,X[atmj,:],Lb)
+        c_disp_in_box(X[atm1,:],X[atmj,:],Lb,disij)
+        c_disp_in_box(Xi,X[atmj,:],Lb,disij2)
 
 #        disij = X[atmj,:]-X[atm1,:]
 #        disij2 = X[atmj,:]-Xi # vectors from i to j, i to k
@@ -240,22 +244,22 @@ def SWPotOne(
         atmi, atmj, atmk = nlist3[nlist3p[atm1,i+1]]
 
         if atmi == atm1:
-            disij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
-            disij2 = c_disp_in_box(Xi,X[atmj,:],Lb)
-            disik = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
-            disik2 = c_disp_in_box(Xi,X[atmk,:],Lb)
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            c_disp_in_box(Xi,X[atmj,:],Lb,disij2)
+            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            c_disp_in_box(Xi,X[atmk,:],Lb,disik2)
 
         elif atmj == atm1:
-            disij  = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
-            disij2 = c_disp_in_box(X[atmi,:],Xi,Lb)
-            disik  = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            c_disp_in_box(X[atmi,:],Xi,Lb,disij2)
+            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
             disik2 = disik
 
         elif atmk == atm1:        
-            disij  = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             disij2 = disij
-            disik  = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
-            disik2 = c_disp_in_box(X[atmi,:],Xi,Lb)
+            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            c_disp_in_box(X[atmi,:],Xi,Lb,disik2)
 
         else:
             print('error on 3body potential distances')
@@ -356,7 +360,8 @@ def SWPotOne(
 
 #    t2 = time.clock()
 #    print("Time required for system 3 body potential:\t" + str(t2-t1))
-
+    print(U2_old,U3_old)
+    print(U2_new,U2_old)
     U_old = U2_old+U3_old*lambdaSi
     U_new = U2_new+U3_new*lambdaSi
     dPot = (U_new-U_old)*epsil
@@ -368,6 +373,12 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
     Natm = np.shape(X)[0]
     U2 = 0 #initial system 2 body potential energy scalar
     U3 = 0 #initial system 3 body potential energy scalar
+
+    cdef np.ndarray[double] disij = np.zeros(3)
+    cdef np.ndarray[double] disij2 = np.zeros(3)
+    cdef np.ndarray[double] disik = np.zeros(3)
+    cdef np.ndarray[double] disik2 = np.zeros(3)
+
     #stored distances
 #    Rij = np.zeros((Natm,Natm))
 
@@ -384,7 +395,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 #            rij = Rij[atmi,atmj]
 #            cij = Cij[atmi,atmj]
 #            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
-            disij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
+            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             # loop through x,y,z distance components and find nearest images
 #            for l in range(3): 
 #                if disij[l] > Lb[l]/2:
@@ -417,8 +428,8 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
 #        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
 #        disik = X[atmk,:]-X[atmi,:]
-        disij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
-        disik = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
+        c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+        c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
         
 
         # loop through x,y,z distance components and find nearest images
