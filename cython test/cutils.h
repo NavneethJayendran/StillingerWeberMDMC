@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-void disp_in_box(double * v1, double * v2, 
+double disp_in_box(double * v1, double * v2, 
                     double * box, double *out){
   double b0h = box[0]/2, b1h = box[1]/2, b2h = box[2]/2;
   out[0] = v2[0]-v1[0];
@@ -19,6 +19,7 @@ void disp_in_box(double * v1, double * v2,
     out[2] -= box[2];
   else if (out[2] < -b2h)
     out[2] += box[2];
+  return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
 }
 
 double distance(double * v1, double * v2){
