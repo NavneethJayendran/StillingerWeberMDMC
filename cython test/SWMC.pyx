@@ -75,7 +75,10 @@ def periodic_disp(pos1, pos2, Lb, disij):
       disij[l] -= Lb[l] 
     elif -disij[l] > Lb[l]/2:
       disij[l] += Lb[l] 
+#<<<<<<< HEAD
 #  print('triple' + str(pos1) +' '+ str(pos2) + ' '+str(disij))
+#=======
+#>>>>>>> 860d70e7d29ebfc5cc2530c029a2bc750e78a887
   return sqrt(disij[0]*disij[0]+disij[1]*disij[1]+disij[2]*disij[2])
 
 
@@ -550,20 +553,44 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
 
 #optimizing for cython
-@cython.boundscheck(False)
+#@cython.boundscheck(False)
 #@cython.wraparound(False)
 def nlist2(
     np.ndarray[double] bx,
     np.ndarray[double] by,
     np.ndarray[double] bz,
     double rc, double rs,
-    np.ndarray[double,ndim=2] x):
+    np.ndarray[double,ndim=2] x,
+    int bflag,
+    np.ndarray[double] Lb):
 
     cdef int nx,ny,nz,d,m,i,j,k,m2,natm,ncntf,pcntf,amax,amin
     cdef int binx,biny,binz,binx2,biny2,binz2,nlen,atm1,atm2
     
     cdef double t0,blx,bly,blz,idnx,idny,idnz
     cdef np.ndarray[double] x1,x2
+
+    natm = x.shape[0]
+    cdef np.ndarray[np.int_t] nlistf = np.zeros((natm*50),dtype=np.int)
+    cdef np.ndarray[np.int_t] nlistpf = np.zeros(natm+1,dtype=np.int)
+    cdef np.ndarray[double] disp = np.zeros(3)
+    cdef double d2
+    pcntf = 1
+    ncntf = 0
+
+    if bflag == 1:
+        for i in range(natm):
+            for j in range(natm):
+                if i ==j: continue
+                d2 = c_disp_in_box(x[i,:],x[j,:],Lb,disp)
+                if d2 < (rc+rs):
+                    nlistf[ncntf] = j
+                    ncntf += 1
+            nlistpf[pcntf] = ncntf
+            pcntf +=1
+        return nlistf,nlistpf
+
+
 
     t0 = time.clock()
     #number of bins in each direction, dictated by box dimension and cutoff radius
@@ -606,9 +633,9 @@ def nlist2(
     cdef np.ndarray[np.int_t,ndim=2] atmbin = np.zeros((natm,3),dtype=np.int)
 
     #neighborlist & nlist pointer initializaton
-    cdef np.ndarray[np.int_t] nlistf = np.zeros((natm*50),dtype=np.int)
+#    cdef np.ndarray[np.int_t] nlistf = np.zeros((natm*50),dtype=np.int)
 
-    cdef np.ndarray[np.int_t] nlistpf = np.zeros(natm+1,dtype=np.int)
+#    cdef np.ndarray[np.int_t] nlistpf = np.zeros(natm+1,dtype=np.int)
     #counter for total number of neighbors found
     ncntf = 0
 

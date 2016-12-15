@@ -5,6 +5,8 @@ import math
 import random
 import heapq
 np.random.seed(0)
+from sortedcontainers import SortedSet
+import SWMC_brute as br
 
 #function to write out particle trajectories for visualization
 def printpos(natm,x):
@@ -18,6 +20,23 @@ def printU(U,U2,U3):
     filename = 'PotentialTrace.dat'
     with open(filename,"a") as myfile:
         myfile.write( '%1.5f %1.5f %1.5f \n'%(U,U2,U3))
+
+def printnl(nl2,np2,l,v,atmi):
+    filename = 'nl2s.dat'
+#    l = SortedSet(l)
+#    v = SortedSet(v)
+    n = SortedSet(nl2[np2[atmi]:np2[atmi+1]])
+    d = n.difference(v)
+
+    with open(filename,"a") as myfile:
+#        for i in range(np2[atmi]:np2[atmi+1])
+#        myfile.write( str(nl2[np2[atmi]:np2[atmi+1]]))        
+        myfile.write(str(list(d)))
+#        myfile.write('\n')
+#        myfile.write('brute neighbor check: atom ID %1.4i'%atmi)
+#        myfile.write(str(l))
+#        myfile.write(str(v))
+        myfile.write('\n \n')
 
 #function to ensure atoms stay within box after moving
 def rebox(atom_pos,Lb):
@@ -50,8 +69,9 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nx
   if atom_pos is None:
       atom_pos = SWMC.PureSi(nx,ny,nz,lat) #init atomic positions
 
-  nl2, np2 = SWMC.nlist2(bx, by, bz, rc, rs, atom_pos)
+  nl2, np2 = SWMC.nlist2(bx, by, bz, rc, rs, atom_pos,1,Lb)
   nl3, np3 = SWMC.nlist3(nl2, np2)
+
   U,U2,U3 = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
   print(U/(.043*50))
 
@@ -61,12 +81,16 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nx
   i_acc = 0 #acceptance counter
 
   for i in range(nsweeps):
-#    if i%2 ==0:
-#        Utot,U2tot,U3tot = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
-#        print('Utotal from full function: \t %1.5f'%Utot)
     print('U from dU: \t %1.4f'%(U))
 
     for j in range(npart):
+      if i%5 ==0 and j%100 == 0:
+    #        Utot,U2tot,U3tot = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
+            v,l = br.twobody_sanity(j, atom_pos, rs, rc)
+            printnl(nl2,np2,l,v,j)
+
+#            print('Utotal from full function: \t %1.5f'%Utot)
+
       #j = int(np.random.random()*npart)
       #don't overwrite old states in case of rejection
       recomputed = False #did we remake the neighborlists?
@@ -88,7 +112,7 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 1800, nx
       if sum(heapq.nlargest(2,(curr_dist,dist_max1_new,dist_max2_new))) > rs:
         #if move would cause a particle to move past threshold value, flag for new neighborlist after successfull
         recomputed = True
-        nl2,np2 = SWMC.nlist2(bx,by,bz,rc,rs,atom_pos)
+        nl2,np2 = SWMC.nlist2(bx,by,bz,rc,rs,atom_pos,1,Lb)
         dist_max2 = 0
 #        disp_max1 = np.zeros(3)
 #        disp_max1 = np.zeros(3)
@@ -133,11 +157,11 @@ if __name__ == "__main__":
     kB = 8.6173303e-5 #Boltzmann in eV/K
     rc = 2.0951*1.8
     rs = 0.6
-#    xstart = np.loadtxt('verymelt.dat')
+    xstart = np.loadtxt('verymelt.dat')
 
-    MC_loop(lat,rc,rs,var=0.1,temp = 2400,nsweeps=1)
+    MC_loop(lat,rc,rs,var=0.1,atom_pos = xstart,temp = 2400,nsweeps=1000)
 
-    testrun = True
+    testrun = False
     if testrun == True:
         lat = 5.431
 #        lat = 4.7192
@@ -161,10 +185,12 @@ if __name__ == "__main__":
         rs = 0.6    #shell thickness past potential rc for neighborlist generation
 
         t0 = time.clock()
-        nl2,np2= SWMC.nlist2(bx,by,bz,rc,rs,x)
+        nl2,np2= SWMC.nlist2(bx,by,bz,rc,rs,x,0,Lb)
         t1 = time.clock()
         nl3,np3 = SWMC.nlist3(nl2,np2)
-
+        for atm in range(Natm):
+            l,v = br.twobody_sanity(atm, x, rs, rc)
+            printnl(nl2,np2,l,v,atm)
         #####
         #Checking potential functions
         t2 = time.clock()
@@ -188,9 +214,9 @@ if __name__ == "__main__":
         dPotOne = SWMC.SWPotOne(nl2,np2,nl3,np3,x,Lb,atm1,x0,1)
         t4 = time.clock()
 
-        nl22,np22 = SWMC.nlist2(bx,by,bz,rc,rs,x_new)
+        nl22,np22 = SWMC.nlist2(bx,by,bz,rc,rs,x_new,1,Lb)
         nl32,np32 = SWMC.nlist3(nl22,np22)
-
+    
         x_new = np.copy(x)
         x_new[atm1,:] = x0
         Unew = SWMC.SWPotAll(nl22,np22,nl32,x_new,Lb)
