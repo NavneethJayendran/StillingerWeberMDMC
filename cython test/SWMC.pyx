@@ -570,7 +570,7 @@ def nlist2(
     cdef np.ndarray[double] x1,x2
 
     natm = x.shape[0]
-    cdef np.ndarray[np.int_t] nlistf = np.zeros((natm*50),dtype=np.int)
+    cdef np.ndarray[np.int_t] nlistf = np.zeros(natm*50,dtype=np.int)
     cdef np.ndarray[np.int_t] nlistpf = np.zeros(natm+1,dtype=np.int)
     cdef np.ndarray[double] disp = np.zeros(3)
     cdef double d2
@@ -798,9 +798,11 @@ def nlist3(
     #3body pointer stores the triplet indices of each triplet involved with atm1
     #first index out of 120*4 is how many triplet indices follow
     nlistp = np.zeros((natm,378*10),dtype = np.int)
+    
 #    nlistp[:,0] = 0
     #counter for triplets found
     cnt3 = 0
+    nlistp[:,0] = cnt3
     #counter for where each central atom's triplet listings begin in the nlist
 
     for i in range(natm):
@@ -813,6 +815,10 @@ def nlist3(
                 nlistp[atm1,0] = nlistp[atm1,0]+1
                 nlistp[atm2,0] = nlistp[atm2,0]+1
                 nlistp[atm3,0] = nlistp[atm3,0]+1
+
+#                print(nlistp[atm1,0])
+#                print(nlistp[atm2,0])
+#                print(nlistp[atm3,0])
 
                 nlist[cnt3,:] = atm1,atm2,atm3
                 nlistp[atm1,nlistp[atm1,0]] = cnt3

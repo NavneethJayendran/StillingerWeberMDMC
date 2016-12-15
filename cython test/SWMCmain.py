@@ -131,6 +131,8 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
         #if move would cause a particle to move past threshold value, flag for new neighborlist after successfull
         recomputed = True
         nl2,np2 = SWMC.nlist2(bx,by,bz,rc,rs,atom_pos,1,Lb)
+        nl3,np3 = SWMC.nlist3(nl2,np2)
+
         dist_max2 = 0
 #        disp_max1 = np.zeros(3)
 #        disp_max1 = np.zeros(3)
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     rs = 0.6
 #    xstart = np.loadtxt('verymelt.dat')
 
-    MC_loop(lat,rc,rs,var=0.1,temp = 1600,nsweeps=1000)
+    MC_loop(lat,rc,rs,var=0.1,temp = 600,nsweeps=1000)
 
     testrun = False
     if testrun == True:
