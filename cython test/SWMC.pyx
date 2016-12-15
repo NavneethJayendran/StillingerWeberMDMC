@@ -178,20 +178,23 @@ def SWPotOne(
     for i in range(nlist2p[atm1],nlist2p[atm1+1]):
         atmj = nlist2[i]
 
-        disij = X[atmj,:]-X[atm1,:]
-        disij2 = X[atmj,:]-Xi # vectors from i to j, i to k
+        disij = c_disp_in_box(X[atm1,:],X[atmj,:],Lb)
+        disij2 = c_disp_in_box(Xi,X[atmj,:],Lb)
 
-        for l in range(3): 
-            if disij[l] > Lb[l]/2:
-                disij[l] = disij[l] - Lb[l]
-            elif -disij[l] > Lb[l]/2:
-                disij[l] = disij[l] + Lb[l]
+#        disij = X[atmj,:]-X[atm1,:]
+#        disij2 = X[atmj,:]-Xi # vectors from i to j, i to k
 
-        for l in range(3): 
-            if disij2[l] > Lb[l]/2:
-                disij2[l] = disij2[l] - Lb[l]
-            elif -disij2[l] > Lb[l]/2:
-                disij2[l] = disij2[l] + Lb[l]
+#        for l in range(3): 
+#            if disij[l] > Lb[l]/2:
+#                disij[l] = disij[l] - Lb[l]
+#            elif -disij[l] > Lb[l]/2:
+#                disij[l] = disij[l] + Lb[l]
+
+#        for l in range(3): 
+#            if disij2[l] > Lb[l]/2:
+#                disij2[l] = disij2[l] - Lb[l]
+#            elif -disij2[l] > Lb[l]/2:
+#                disij2[l] = disij2[l] + Lb[l]
 
 
         #old distance
@@ -236,45 +239,50 @@ def SWPotOne(
         atmi, atmj, atmk = nlist3[nlist3p[atm1,i+1]]
 
         if atmi == atm1:
-            disij = X[atmj,:]-X[atmi,:]
-            disik = X[atmk,:]-X[atmi,:]
-            disij2 = X[atmj,:]-Xi
-            disik2 = X[atmk,:]-Xi
+            disij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
+            disij2 = c_disp_in_box(Xi,X[atmj,:],Lb)
+            disik = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
+            disik2 = c_disp_in_box(Xi,X[atmk,:],Lb)
+
         elif atmj == atm1:
-            disij = X[atmj,:]-X[atmi,:]
-            disik = X[atmk,:]-X[atmi,:]
-            disij2 = Xi-X[atmi,:]
+            disij  = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
+            disij2 = c_disp_in_box(X[atmi,:],Xi,Lb)
+            disik  = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
             disik2 = disik
-        else:
-            disij = X[atmj,:]-X[atmi,:]
-            disik = X[atmk,:]-X[atmi,:]
+
+        elif atmk == atm1:        
+            disij  = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
             disij2 = disij
-            disik2 = Xi-X[atmi,:]
+            disik  = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
+            disik2 = c_disp_in_box(X[atmi,:],Xi,Lb)
+
+        else:
+            print('error on 3body potential distances')
 
         # loop through x,y,z distance components and find nearest images
-        for l in range(3): 
-            if disij[l] > Lb[l]/2:
-                disij[l] = disij[l] - Lb[l]
-            elif -disij[l] > Lb[l]/2:
-                disij[l] = disij[l] + Lb[l]
+#        for l in range(3): 
+#            if disij[l] > Lb[l]/2:
+#                disij[l] = disij[l] - Lb[l]
+#            elif -disij[l] > Lb[l]/2:
+#                disij[l] = disij[l] + Lb[l]
             # end if
 
-            if disik[l] > Lb[l]/2:
-                disik[l] = disik[l] - Lb[l]
-            elif -disik[l] > Lb[l]/2:
-                disik[l] = disik[l] + Lb[l]
+#            if disik[l] > Lb[l]/2:
+#                disik[l] = disik[l] - Lb[l]
+#            elif -disik[l] > Lb[l]/2:
+#                disik[l] = disik[l] + Lb[l]
             # end if
 
-            if disij2[l] > Lb[l]/2:
-                disij2[l] = disij2[l] - Lb[l]
-            elif -disij2[l] > Lb[l]/2:
-                disij2[l] = disij2[l] + Lb[l]
+#            if disij2[l] > Lb[l]/2:
+#                disij2[l] = disij2[l] - Lb[l]
+#            elif -disij2[l] > Lb[l]/2:
+#                disij2[l] = disij2[l] + Lb[l]
             # end if
 
-            if disik2[l] > Lb[l]/2:
-                disik2[l] = disik2[l] - Lb[l]
-            elif -disik2[l] > Lb[l]/2:
-                disik2[l] = disik2[l] + Lb[l]
+#            if disik2[l] > Lb[l]/2:
+#                disik2[l] = disik2[l] - Lb[l]
+#            elif -disik2[l] > Lb[l]/2:
+#                disik2[l] = disik2[l] + Lb[l]
             # end if
 
         #old distance
@@ -372,17 +380,16 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
             atmj = nlist2[j]
             #only calculate each pair's energy once
             if atmi > atmj: continue
-
 #            rij = Rij[atmi,atmj]
 #            cij = Cij[atmi,atmj]
-            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
-
+#            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
+            disij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
             # loop through x,y,z distance components and find nearest images
-            for l in range(3): 
-                if disij[l] > Lb[l]/2:
-                    disij[l] = disij[l] - Lb[l]
-                elif -disij[l] > Lb[l]/2:
-                    disij[l] = disij[l] + Lb[l]
+#            for l in range(3): 
+#                if disij[l] > Lb[l]/2:
+#                    disij[l] = disij[l] - Lb[l]
+#                elif -disij[l] > Lb[l]/2:
+#                    disij[l] = disij[l] + Lb[l]
                 # end if
             rij = np.linalg.norm(disij)*isigmaSi            
 
@@ -407,21 +414,24 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
         atmj = nlist3[i,1]
         atmk = nlist3[i,2]
 
-        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
-        disik = X[atmk,:]-X[atmi,:]
+#        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
+#        disik = X[atmk,:]-X[atmi,:]
+        disij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb)
+        disik = c_disp_in_box(X[atmi,:],X[atmk,:],Lb)
+        
 
         # loop through x,y,z distance components and find nearest images
-        for l in range(3): 
-            if disij[l] > Lb[l]/2:
-                disij[l] = disij[l] - Lb[l]
-            elif -disij[l] > Lb[l]/2:
-                disij[l] = disij[l] + Lb[l]
+#        for l in range(3): 
+#            if disij[l] > Lb[l]/2:
+#                disij[l] = disij[l] - Lb[l]
+#            elif -disij[l] > Lb[l]/2:
+#                disij[l] = disij[l] + Lb[l]
             # end if
 
-            if disik[l] > Lb[l]/2:
-                disik[l] = disik[l] - Lb[l]
-            elif -disik[l] > Lb[l]/2:
-                disik[l] = disik[l] + Lb[l]
+#            if disik[l] > Lb[l]/2:
+#                disik[l] = disik[l] - Lb[l]
+#            elif -disik[l] > Lb[l]/2:
+#                disik[l] = disik[l] + Lb[l]
             # end if
 
         rij = c_norm2_3d(disij)
