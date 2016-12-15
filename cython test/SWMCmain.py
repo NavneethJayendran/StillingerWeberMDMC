@@ -97,16 +97,16 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
             printnl(nl2,np2,l,v,j)
 
 #            print('Utotal from full function: \t %1.5f'%Utot)
-      if i> 0 and i%10 == 0:
+      if i> 199 and i%200 == 0:
           if jcnt == 0:
-#            gr = SF.RDF(atom_pos,Lb,dr)
+            gr = SF.RDF(atom_pos,Lb,dr)
             sk = SF.Sk(kvecs,atom_pos)
-#            blf = SF.BLF(atom_pos)
+            blf = SF.BLF(atom_pos)
             jcnt +=1 
           else:
-#            gr += SF.RDF(atom_pos,Lb,dr)
+            gr += SF.RDF(atom_pos,Lb,dr)
             sk += SF.Sk(kvecs,atom_pos)
-#            blf += SF.BLF(atom_pos)
+            blf += SF.BLF(atom_pos)
             jcnt +=1
         
       #j = int(np.random.random()*npart)
@@ -169,12 +169,12 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
     print('Cumulative Acceptance Rate on sweep: \t' + str(i_acc/((i+1)*npart))+' '+str(i+1))
     printpos(npart,atom_pos,temp)
     printU(U,U2,U3,temp)
-#  blf/=jcnt
+  blf/=jcnt
   sk /=jcnt
-#  gr /=jcnt
-#  np.savetxt('%4.0iK_BLF.dat'%temp,blf)
+  gr /=jcnt
+  np.savetxt('%4.0iK_BLF.dat'%temp,blf)
   np.savetxt('%4.0iK_sf.dat'%temp,sk)
-#  np.savetxt('%4.0iK_gr.dat'%temp,gr)
+  np.savetxt('%4.0iK_gr.dat'%temp,gr)
 
 if __name__ == "__main__":
     lat = 5.431
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     rs = 0.6
 #    xstart = np.loadtxt('verymelt.dat')
 
-    MC_loop(lat,rc,rs,var=0.1,temp = 2200,nsweeps=11)
+    MC_loop(lat,rc,rs,var=0.1,temp = 1600,nsweeps=1000)
 
     testrun = False
     if testrun == True:
