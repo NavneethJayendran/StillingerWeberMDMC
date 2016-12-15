@@ -33,7 +33,7 @@ def RDF(np.ndarray[double,ndim =2] X,
 #    plt.xlabel('r')
 #    plt.ylabel('g(r)')
 
-    return radial, bins
+    return np.array((radial, bins))
 # end def RDF
 
 # function computes a list of the legal k-vectors
@@ -86,13 +86,14 @@ def Sk(np.ndarray[double,ndim=2] kvecs,
 
 #    plt.figure(1)
 #    kvecs = legal_kvecs(5,Lb)
-    cdef np.ndarray[np.int_t] kmags = np.zeros(np.shape(kvecs)[0],dtype=np.int)
+    cdef np.ndarray[double] kmags = np.zeros(np.shape(kvecs)[0])
     for i in range(np.shape(kvecs)[0]):
         kmags[i] = np.linalg.norm(kvecs[i,:])
+#    print(kmags)
     # sk_list = Sk(kvecs, X)
     cdef np.ndarray[double] sk_arr = np.array(sk_list) # convert to numpy array if not already so
     # average S(k) if multiple k-vectors have the same magnitude
-    cdef np.ndarray[np.int_t] unique_kmags = np.unique(kmags)
+    cdef np.ndarray[double] unique_kmags = np.unique(kmags)
     cdef np.ndarray[double] unique_sk    = np.zeros(len(unique_kmags))
     cdef int iukmag
     cdef double kmag
@@ -104,7 +105,7 @@ def Sk(np.ndarray[double,ndim=2] kvecs,
 
     # visualize
 #    plt.plot(unique_kmags[1:],unique_sk[1:])
-    return sk_list
+    return np.array([unique_kmags,unique_sk])
 # end def Sk
 
 @cython.boundscheck(False)
@@ -112,23 +113,31 @@ def Sk(np.ndarray[double,ndim=2] kvecs,
 def BLF( np.ndarray[double,ndim=2] X):
 
     cdef double BLF = 0.0 # bond length fluctuation
-    cdef double mean = 0.0 # mean value of dist
-    cdef double sqmean = 0.0 # mean value of dist square
-    cdef int i,j
+    cdef double mean # mean value of dist
+    cdef double sqmean # mean value of dist square
+    cdef int i,j,cnt
     cdef double dist
     for i in range(natom - 1):
+        cnt = 0
+        mean = 0
+        sqmean = 0
         for j in range(i + 1, natom):
+            cnt += 1
             dist = np.linalg.norm(X[j,:]-X[i,:]) # calculate distance between iat and jat 
-            mean += dist/natom
-            sqmean += dist**2/natom
+            mean += dist
+            sqmean += dist**2
+        mean /= max(cnt,1)
+        sqmean /= max(cnt,1)
+        BLF += np.sqrt(abs(sqmean-mean**2))/mean
+    BLF = BLF*2/(natom*(natom-1))
         # end for
     # end for
-    for i in range(natom - 1):
-        for j in range(i + 1, natom):
-            BLF += np.sqrt(abs(sqmean-mean**2))/mean * 2/(natom*(natom-1))
+#    for i in range(natom - 1):
+#        for j in range(i + 1, natom):
+#            BLF += np.sqrt(abs(sqmean-mean**2))/mean * 2/(natom*(natom-1))
 
         #end for
     # end for
 
-    return BLF
+    return np.array([BLF])
 # end BLF

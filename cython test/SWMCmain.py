@@ -77,7 +77,8 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
   jcnt = 0
 #  gr = np.zeros(
   kvecs = SF.legal_kvecs(5,Lb)
-
+#  print(np.shape(kvecs)[0],np.shape(kvecs)[1])
+#  print(kvecs)
   U,U2,U3 = SWMC.SWPotAll(nl2, np2, nl3, atom_pos,Lb)
   print(U/(.043*50))
 
@@ -98,14 +99,14 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
 #            print('Utotal from full function: \t %1.5f'%Utot)
       if i> 0 and i%10 == 0:
           if jcnt == 0:
-            gr = SF.RDF(atom_pos,Lb,dr)
+#            gr = SF.RDF(atom_pos,Lb,dr)
             sk = SF.Sk(kvecs,atom_pos)
-            blf = SF.BLF(atom_pos)
+#            blf = SF.BLF(atom_pos)
             jcnt +=1 
           else:
-            gr += SF.RDF(atom_pos,Lb,dr)
+#            gr += SF.RDF(atom_pos,Lb,dr)
             sk += SF.Sk(kvecs,atom_pos)
-            blf += SF.BLF(atom_pos)
+#            blf += SF.BLF(atom_pos)
             jcnt +=1
         
       #j = int(np.random.random()*npart)
@@ -168,12 +169,12 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
     print('Cumulative Acceptance Rate on sweep: \t' + str(i_acc/((i+1)*npart))+' '+str(i+1))
     printpos(npart,atom_pos,temp)
     printU(U,U2,U3,temp)
-  blf/=jcnt
+#  blf/=jcnt
   sk /=jcnt
-  gr /=jcnt
-  np.savetxt(str(temp)+'K_BLF.dat',blf)
-  np.savetxt(str(temp)+'K_sf.dat',sk)
-  np.savetxt(str(temp)+'K_gr.dat',gr)
+#  gr /=jcnt
+#  np.savetxt('%4.0iK_BLF.dat'%temp,blf)
+  np.savetxt('%4.0iK_sf.dat'%temp,sk)
+#  np.savetxt('%4.0iK_gr.dat'%temp,gr)
 
 if __name__ == "__main__":
     lat = 5.431
