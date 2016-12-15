@@ -65,14 +65,16 @@ def p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
     out[2] += box[2];
   return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
 
-def periodic_disp(pos1, pos2): 
-  disij = pos1 - pos2  
+def periodic_disp(pos1, pos2, Lb, dispij): 
   for l in range(3): 
+    disij[l] = pos2[l]-pos1[l]
     if disij[l] > Lb[l]/2:
       disij[l] -= Lb[l] 
     elif -disij[l] > Lb[l]/2:
       disij[l] += Lb[l] 
-  return disij
+  return sqrt(disij[0]*disij[1]+disij[0]*disij[1]+disij[0]*disij[1])
+
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
