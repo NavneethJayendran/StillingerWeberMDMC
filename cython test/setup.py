@@ -12,7 +12,19 @@ setup(
             include_dirs=[numpy.get_include()],
             sources = ['SWMC.pyx'],
             extra_compile_args=['-O3'],
-            language='c++')
+            language='c')
+    ],
+    cmdclass ={'build_ext': build_ext}
+)
+
+setup(
+    name = 'SF Comp',
+    ext_modules=[
+        Extension('SF',
+            include_dirs=[numpy.get_include()],
+            sources = ['structure_factor_cython_hy.pyx'],
+            extra_compile_args=['-O3'],
+            language='c')
     ],
     cmdclass ={'build_ext': build_ext}
 )

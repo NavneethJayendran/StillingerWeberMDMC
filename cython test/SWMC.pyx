@@ -489,12 +489,11 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
         atmi= nlist3[i,0]
         atmj = nlist3[i,1]
         atmk = nlist3[i,2]
-
+    
 #        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
 #        disik = X[atmk,:]-X[atmi,:]
-        c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-        c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-        
+        rij = c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+        rik = c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
 
         # loop through x,y,z distance components and find nearest images
 #        for l in range(3): 
@@ -510,8 +509,8 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 #                disik[l] = disik[l] + Lb[l]
             # end if
 
-        rij = c_norm2_3d(disij)
-        rik = c_norm2_3d(disik)
+#        rij = c_norm2_3d(disij)
+#        rik = c_norm2_3d(disik)
 
         dot = c_dot3d(disij,disik)
         cosjik = dot/(rij*rik)
@@ -581,7 +580,7 @@ def nlist2(
     if bflag == 1:
         for i in range(natm):
             for j in range(natm):
-                if i ==j: continue
+                if i == j: continue
                 d2 = c_disp_in_box(x[i,:],x[j,:],Lb,disp)
                 if d2 < (rc+rs):
                     nlistf[ncntf] = j
@@ -589,8 +588,6 @@ def nlist2(
             nlistpf[pcntf] = ncntf
             pcntf +=1
         return nlistf,nlistpf
-
-
 
     t0 = time.clock()
     #number of bins in each direction, dictated by box dimension and cutoff radius
