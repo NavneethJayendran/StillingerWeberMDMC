@@ -43,26 +43,28 @@ def c_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
 
   return disp_in_box(&v1[0], &v2[0], &box[0], &out[0])
 
-def p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
-                  np.ndarray[double, ndim=1, mode="c"] v2 not None,
-                  np.ndarray[double, ndim=1, mode="c"] box not None,
-                  np.ndarray[double, ndim=1, mode="c"] out not None):
-  double b0h = box[0]/2, b1h = box[1]/2, b2h = box[2]/2;
+cpdef p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1,
+                  np.ndarray[double, ndim=1, mode="c"] v2,
+                  np.ndarray[double, ndim=1, mode="c"] box,
+                  np.ndarray[double, ndim=1, mode="c"] out):
+  b0h = box[0]/2
+  b1h = box[1]/2
+  b2h = box[2]/2;
   out[0] = v2[0]-v1[0];
   out[1] = v2[1]-v1[1];
   out[2] = v2[2]-v1[2];
-  if (out[0] > b0h)
-    out[0] -= box[0];
-  elif (out[0] < -b0h)
-    out[0] += box[0];
-  if (out[1] > b1h)
-    out[1] -= box[1];
-  elif (out[1] < -b1h)
-    out[1] += box[1];
-  if (out[2] > b2h)
-    out[2] -= box[2];
-  elif (out[2] < -b2h)
-    out[2] += box[2];
+  if (out[0] > b0h):
+    out[0] -= box[0]
+  elif (out[0] < -b0h):
+    out[0] += box[0]
+  if (out[1] > b1h):
+    out[1] -= box[1]
+  elif (out[1] < -b1h):
+    out[1] += box[1]
+  if (out[2] > b2h):
+    out[2] -= box[2]
+  elif (out[2] < -b2h):
+    out[2] += box[2]
   return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
 
 
@@ -206,8 +208,12 @@ def SWPotOne(
     for i in range(nlist2p[atm1],nlist2p[atm1+1]):
         atmj = nlist2[i]
 
-        c_disp_in_box(X[atm1,:],X[atmj,:],Lb,disij)
-        c_disp_in_box(Xi,X[atmj,:],Lb,disij2)
+        rij = p_disp_in_box(X[atm1,:],X[atmj,:],Lb,disij)*isigmaSi
+        rij2 = p_disp_in_box(Xi,X[atmj,:],Lb,disij2)*isigmaSi
+
+        print(rij)
+        print(rij2)
+
 
 #        disij = X[atmj,:]-X[atm1,:]
 #        disij2 = X[atmj,:]-Xi # vectors from i to j, i to k
@@ -226,9 +232,9 @@ def SWPotOne(
 
 
         #old distance
-        rij = c_norm2_3d(disij)*isigmaSi
+#        rij = c_norm2_3d(disij)*isigmaSi
         #new distance
-        rij2 = c_norm2_3d(disij2)*isigmaSi
+#        rij2 = c_norm2_3d(disij2)*isigmaSi
 
         #checking for distances outside of cutoff raidus: outside will result in a potential of ~0            
         if rij > al:
@@ -265,28 +271,43 @@ def SWPotOne(
     for i in range(nlist3p[atm1,0]):
         #extract the triplet array using the pointer list's index
         atmi, atmj, atmk = nlist3[nlist3p[atm1,i+1]]
-
+        print(atmi,atmj,atmk)
+        print(Xi)
+        print(X[atm1,:])
         if atmi == atm1:
-            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-            c_disp_in_box(Xi,X[atmj,:],Lb,disij2)
-            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-            c_disp_in_box(Xi,X[atmk,:],Lb,disik2)
+            assert(not np.allclose(X[atmi,:],Xi))
+            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            p_disp_in_box(Xi,X[atmj,:],Lb,disij2)
+            print(disij)
+            print(disij2)
+            p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            p_disp_in_box(Xi,X[atmk,:],Lb,disik2)
+            print(disik)
+            print(disik2)
 
         elif atmj == atm1:
-            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-            c_disp_in_box(X[atmi,:],Xi,Lb,disij2)
-            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            assert(not np.allclose(X[atmi,:],Xi))
+
+            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            p_disp_in_box(X[atmi,:],Xi,Lb,disij2)
+
+            p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
             disik2 = disik
 
         elif atmk == atm1:        
-            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            assert(not np.allclose(X[atmi,:],Xi))
+
+            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             disij2 = disij
-            c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
-            c_disp_in_box(X[atmi,:],Xi,Lb,disik2)
+
+            p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+            p_disp_in_box(X[atmi,:],Xi,Lb,disik2)
 
         else:
             print('error on 3body potential distances')
 
+        print(disik)
+        print(disik2)
         # loop through x,y,z distance components and find nearest images
 #        for l in range(3): 
 #            if disij[l] > Lb[l]/2:
@@ -320,7 +341,6 @@ def SWPotOne(
         #new distance
         rij2 = c_norm2_3d(disij2)
         rik2 = c_norm2_3d(disik2)
-
 #        if rik == 0:
 #            print('Atom i and Atom k: \t' + str(atmi)+' '+str(atmk))
 #            print(amin2,amax2)
@@ -341,7 +361,6 @@ def SWPotOne(
         rik = rik*isigmaSi
         rij2 = rij2*isigmaSi
         rik2 = rik2*isigmaSi
-
 
         #checking for distances outside of cutoff raidus: outside will result in a potential of ~0            
         if rij > al:
@@ -384,7 +403,7 @@ def SWPotOne(
 #    t2 = time.clock()
 #    print("Time required for system 3 body potential:\t" + str(t2-t1))
     print(U2_old,U3_old)
-    print(U2_new,U2_old)
+    print(U2_new,U3_new)
     U_old = U2_old+U3_old*lambdaSi
     U_new = U2_new+U3_new*lambdaSi
     dPot = (U_new-U_old)*epsil
@@ -418,7 +437,7 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 #            rij = Rij[atmi,atmj]
 #            cij = Cij[atmi,atmj]
 #            disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
-            c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+            p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
             # loop through x,y,z distance components and find nearest images
 #            for l in range(3): 
 #                if disij[l] > Lb[l]/2:
@@ -451,8 +470,8 @@ def SWPotAll(nlist2,nlist2p,nlist3,X,Lb):
 
 #        disij = X[atmj,:]-X[atmi,:] # vectors from i to j, i to k
 #        disik = X[atmk,:]-X[atmi,:]
-        c_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
-        c_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
+        p_disp_in_box(X[atmi,:],X[atmj,:],Lb,disij)
+        p_disp_in_box(X[atmi,:],X[atmk,:],Lb,disik)
         
 
         # loop through x,y,z distance components and find nearest images
