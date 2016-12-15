@@ -10,8 +10,8 @@ from sortedcontainers import SortedSet
 import SWMC_brute as br
 
 #function to write out particle trajectories for visualization
-def printpos(natm,x):
-    filename = 'AtomPos.xyz'
+def printpos(natm,x,temp):
+    filename = str(temp) + 'K_AtomPos.xyz'
     with open(filename,"a") as myfile:
         myfile.write( str(natm) + '\n \n')
         for i in range(natm):
@@ -96,15 +96,17 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
             printnl(nl2,np2,l,v,j)
 
 #            print('Utotal from full function: \t %1.5f'%Utot)
-      if i> 100 and i%50 == 0:
+      if i> 0 and i%10 == 0:
           if jcnt == 0:
             gr = SF.RDF(atom_pos,Lb,dr)
             sk = SF.Sk(kvecs,atom_pos)
             blf = SF.BLF(atom_pos)
-          gr += SF.RDF(atom_pos,Lb,dr)
-          sk += SF.Sk(kvecs,atom_pos)
-          blf += SF.BLF(atom_pos)
-          jcnt +=1
+            jcnt +=1 
+          else:
+            gr += SF.RDF(atom_pos,Lb,dr)
+            sk += SF.Sk(kvecs,atom_pos)
+            blf += SF.BLF(atom_pos)
+            jcnt +=1
         
       #j = int(np.random.random()*npart)
       #don't overwrite old states in case of rejection
@@ -164,7 +166,7 @@ def MC_loop(lat,rc,rs,nsweeps = 1000,nc = 10, sigma=0.0,var=0.3, temp = 2200, nx
             dist_max1 = 0
         recomputed = False        
     print('Cumulative Acceptance Rate on sweep: \t' + str(i_acc/((i+1)*npart))+' '+str(i+1))
-    printpos(npart,atom_pos)
+    printpos(npart,atom_pos,temp)
     printU(U,U2,U3,temp)
   blf/=jcnt
   sk /=jcnt
@@ -181,7 +183,7 @@ if __name__ == "__main__":
     rs = 0.6
 #    xstart = np.loadtxt('verymelt.dat')
 
-    MC_loop(lat,rc,rs,var=0.1,temp = 2200,nsweeps=1000)
+    MC_loop(lat,rc,rs,var=0.1,temp = 2200,nsweeps=11)
 
     testrun = False
     if testrun == True:

@@ -75,24 +75,26 @@ def rhok(kvec,X):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def Sk(kvecs, 
+def Sk(np.ndarray[double,ndim=2] kvecs, 
     np.ndarray[double, ndim=2] X):
     """ computes structure factor for all k vectors in kList
      and returns a list of them """
-    cdef int kvec
+#    cdef double kvec
     sk_list = []
     for kvec in kvecs:
         sk_list.append(abs(rhok(kvec, X) * rhok(-kvec , X)) / natom)
 
 #    plt.figure(1)
 #    kvecs = legal_kvecs(5,Lb)
-    cdef np.ndarray[double] kmags  = [np.linalg.norm(kvec) for kvec in kvecs]
+    cdef np.ndarray[np.int_t] kmags = np.zeros(np.shape(kvecs)[0],dtype=np.int)
+    for i in range(np.shape(kvecs)[0]):
+        kmags[i] = np.linalg.norm(kvecs[i,:])
     # sk_list = Sk(kvecs, X)
     cdef np.ndarray[double] sk_arr = np.array(sk_list) # convert to numpy array if not already so
     # average S(k) if multiple k-vectors have the same magnitude
-    cdef np.ndarray[double] unique_kmags = np.unique(kmags)
+    cdef np.ndarray[np.int_t] unique_kmags = np.unique(kmags)
     cdef np.ndarray[double] unique_sk    = np.zeros(len(unique_kmags))
-    cdef int iukmag, idx2avg
+    cdef int iukmag
     cdef double kmag
     for iukmag in range(len(unique_kmags)):
         kmag    = unique_kmags[iukmag]
@@ -123,7 +125,7 @@ def BLF( np.ndarray[double,ndim=2] X):
     # end for
     for i in range(natom - 1):
         for j in range(i + 1, natom):
-            BLF += np.sqrt(sqmean-mean**2)/mean * 2/(natom*(natom-1))
+            BLF += np.sqrt(abs(sqmean-mean**2))/mean * 2/(natom*(natom-1))
 
         #end for
     # end for
