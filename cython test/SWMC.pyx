@@ -22,7 +22,7 @@ cdef pointer_to_numpy_array_float64(void * ptr, np.npy_intp size):
 
 cdef extern from "cutils.h":
   double distance(double *v1, double *v2)
-  void disp_in_box(double *v1, double *v2, double *box, double *out)
+  double disp_in_box(double *v1, double *v2, double *box, double *out)
   void normalize2_3d(double *vec)
   double norm2_3d(double *vec)
   double dot3d(double *vec1, double *vec2)
@@ -41,7 +41,30 @@ def c_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
                   np.ndarray[double, ndim=1, mode="c"] box not None,
                   np.ndarray[double, ndim=1, mode="c"] out not None):
 
-  disp_in_box(&v1[0], &v2[0], &box[0], &out[0])
+  return disp_in_box(&v1[0], &v2[0], &box[0], &out[0])
+
+def p_disp_in_box(np.ndarray[double, ndim=1, mode="c"] v1 not None,
+                  np.ndarray[double, ndim=1, mode="c"] v2 not None,
+                  np.ndarray[double, ndim=1, mode="c"] box not None,
+                  np.ndarray[double, ndim=1, mode="c"] out not None):
+  double b0h = box[0]/2, b1h = box[1]/2, b2h = box[2]/2;
+  out[0] = v2[0]-v1[0];
+  out[1] = v2[1]-v1[1];
+  out[2] = v2[2]-v1[2];
+  if (out[0] > b0h)
+    out[0] -= box[0];
+  elif (out[0] < -b0h)
+    out[0] += box[0];
+  if (out[1] > b1h)
+    out[1] -= box[1];
+  elif (out[1] < -b1h)
+    out[1] += box[1];
+  if (out[2] > b2h)
+    out[2] -= box[2];
+  elif (out[2] < -b2h)
+    out[2] += box[2];
+  return sqrt(out[0]*out[0]+out[1]*out[1]+out[2]*out[2]);
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
